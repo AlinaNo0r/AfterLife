@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — The Archivist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #63568F;
+  --primary-container: #B8A9E8;
+  --primary-grad: linear-gradient(135deg, #63568F, #B8A9E8);
+  --secondary: #4C4469;
+  --tertiary: #E5A09B;
+  --surface: #0E0E12;
+  --surface-low: #161620;
+  --surface-lowest: #1E1E2A;
+  --surface-high: #252535;
+  --surface-highest: #2E2E40;
+  --on-surface: #E8E6F0;
+  --on-surface-muted: #9997AA;
+  --on-primary: #FFFFFF;
+  --accent-yellow: #E07070;
+  --accent-blue: #5B8FD4;
+  --accent-green: #6DBF8A;
+  --accent-red: #E07070;
+  --glass-bg: rgba(99,86,143,0.15);
+  --glass-border: rgba(184,169,232,0.15);
+  --shadow: 0 20px 40px rgba(0,0,0,0.35);
+  --shadow-sm: 0 8px 24px rgba(0,0,0,0.25);
+  --spring: cubic-bezier(0.34,1.56,0.64,1);
+  --font-display: 'Lexend', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --radius-pill: 999px;
+  --radius-card: 20px;
+  --radius-lg: 16px;
+  --sidebar-w: 220px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font-body);background:var(--surface);color:var(--on-surface);display:flex}
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);height:100vh;background:var(--surface-low);display:flex;flex-direction:column;padding:28px 0;position:relative;z-index:10}
+.sidebar-logo{padding:0 24px 32px;cursor:pointer}
+.sidebar-logo h1{font-family:var(--font-display);font-size:1.1rem;font-weight:700;letter-spacing:0.08em;color:var(--on-surface);line-height:1.1}
+.sidebar-logo p{font-size:0.7rem;font-weight:500;color:var(--primary-container);letter-spacing:0.12em;margin-top:3px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 20px;margin:2px 12px;border-radius:var(--radius-pill);cursor:pointer;font-size:0.875rem;font-weight:500;color:var(--on-surface-muted);transition:all 0.3s var(--spring);position:relative;user-select:none}
+.nav-item:hover{color:var(--on-surface);background:var(--glass-bg)}
+.nav-item.active{background:var(--primary);color:#fff;box-shadow:0 4px 16px rgba(99,86,143,0.4)}
+.nav-icon{width:20px;height:20px;flex-shrink:0;opacity:0.8}
+.nav-item.active .nav-icon{opacity:1}
+.sidebar-bottom{margin-top:auto;padding:0 16px}
+.stay-alive-btn{width:100%;padding:14px;background:var(--primary-grad);border:none;border-radius:var(--radius-pill);font-family:var(--font-body);font-size:0.8rem;font-weight:700;letter-spacing:0.12em;color:#fff;cursor:pointer;transition:all 0.4s var(--spring);box-shadow:0 4px 20px rgba(99,86,143,0.5);margin-bottom:16px}
+.stay-alive-btn:hover{transform:scale(1.04);box-shadow:0 8px 28px rgba(99,86,143,0.65)}
+.user-card{display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface-lowest);border-radius:var(--radius-lg);cursor:pointer;transition:all 0.3s}
+.user-avatar{width:36px;height:36px;border-radius:50%;background:var(--primary-grad);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;color:#fff;flex-shrink:0}
+.user-info h4{font-size:0.8rem;font-weight:600;color:var(--on-surface)}
+.user-info p{font-size:0.65rem;font-weight:500;color:var(--accent-green);letter-spacing:0.1em}
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{display:flex;align-items:center;gap:16px;padding:20px 32px;background:var(--glass-bg);backdrop-filter:blur(20px);border-bottom:1px solid var(--glass-border);flex-shrink:0}
+.search-wrap{flex:1;max-width:400px;position:relative}
+.search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--on-surface-muted)}
+.search-input{width:100%;padding:10px 14px 10px 40px;background:var(--surface-lowest);border:none;border-radius:var(--radius-pill);font-family:var(--font-body);font-size:0.875rem;color:var(--on-surface);outline:none}
+.topbar-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.icon-btn{width:40px;height:40px;border-radius:50%;background:var(--surface-lowest);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.35s var(--spring);color:var(--on-surface-muted)}
+.icon-btn:hover{background:var(--surface-high);color:var(--on-surface);transform:scale(1.1)}
+.icon-btn svg{width:18px;height:18px}
+.avatar-btn{width:40px;height:40px;border-radius:50%;background:var(--primary-grad);border:2px solid var(--primary-container);cursor:pointer;overflow:hidden;transition:all 0.35s var(--spring);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;color:#fff}
+.content{flex:1;overflow-y:auto;padding:36px 32px;scroll-behavior:smooth}
+.content::-webkit-scrollbar{width:6px}
+.content::-webkit-scrollbar-thumb{background:var(--surface-highest);border-radius:4px}
+.hero{margin-bottom:32px}
+.hero h2{font-family:var(--font-display);font-size:3.2rem;font-weight:600;line-height:1.1;letter-spacing:-0.02em;color:var(--on-surface)}
+.hero h2 span{background:var(--primary-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-meta{display:flex;align-items:center;gap:16px;margin-top:10px}
+.status-badge{display:flex;align-items:center;gap:6px;font-size:0.7rem;font-weight:600;letter-spacing:0.14em;color:var(--on-surface-muted)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent-green);animation:pulse-dot 2s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.3)}}
+.grid-main{display:grid;grid-template-columns:1fr 320px;gap:20px;margin-bottom:20px}
+.grid-bottom{display:grid;grid-template-columns:1fr 1fr 320px;gap:20px}
+.card{background:var(--surface-lowest);border-radius:var(--radius-card);padding:28px;box-shadow:var(--shadow-sm);transition:all 0.4s var(--spring);cursor:pointer;position:relative;overflow:hidden}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.card-label{font-size:0.65rem;font-weight:600;letter-spacing:0.16em;color:var(--on-surface-muted);margin-bottom:16px}
+.card-icon-wrap{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;flex-shrink:0}
+.card-icon-wrap svg{width:26px;height:26px}
+.card h3{font-family:var(--font-display);font-size:1.5rem;font-weight:500;color:var(--on-surface);margin-bottom:10px;line-height:1.2}
+.card p{font-size:0.875rem;line-height:1.6;color:var(--on-surface-muted)}
+.trusted-circle{grid-row:1}
+.trusted-avatars{display:flex;align-items:center;margin-top:20px}
+.trusted-avatars .ta{width:38px;height:38px;border-radius:50%;border:3px solid var(--surface-lowest);margin-left:-10px;background:var(--primary-grad);display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:#fff;transition:all 0.3s var(--spring);cursor:pointer}
+.trusted-avatars .ta:first-child{margin-left:0}
+.trusted-avatars .ta:hover{transform:scale(1.15) translateY(-4px);z-index:5}
+.trusted-avatars .ta-more{background:var(--surface-highest);color:var(--on-surface-muted)}
+.side-cards{display:flex;flex-direction:column;gap:20px}
+.pulse-card{background:var(--surface-lowest)}
+.pulse-icon{width:56px;height:56px;background:var(--accent-yellow);border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.pulse-icon svg{width:28px;height:28px;color:#1a1200;animation:heartbeat-beat 1.2s ease-in-out infinite}
+.heartbeat-line{margin:12px 0;height:32px;position:relative;overflow:hidden}
+.heartbeat-line svg{width:100%;height:100%;stroke:var(--accent-green);fill:none;stroke-width:2}
+.heartbeat-path{stroke-dasharray:300;stroke-dashoffset:300;animation:draw-line 3s linear infinite}
+@keyframes draw-line{0%{stroke-dashoffset:300}100%{stroke-dashoffset:-300}}
+@keyframes heartbeat-beat{0%,100%{transform:scale(1)}25%{transform:scale(1.15)}50%{transform:scale(1)}75%{transform:scale(1.15)}}
+.update-sig-btn{width:100%;padding:11px;background:transparent;border:1.5px solid var(--accent-yellow);border-radius:var(--radius-pill);font-family:var(--font-body);font-size:0.75rem;font-weight:700;letter-spacing:0.1em;color:var(--accent-yellow);cursor:pointer;transition:all 0.4s var(--spring);margin-top:4px}
+.update-sig-btn:hover{background:var(--accent-yellow);color:#1a1200;transform:scale(1.04)}
+.hidden-keys-card:hover .keys-count{color:var(--primary-container)}
+.keys-icon{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.keys-icon svg{width:20px;height:20px;color:var(--primary-container)}
+.keys-count{font-family:var(--font-display);font-size:2.2rem;font-weight:600;color:var(--on-surface);margin:8px 0;transition:color 0.3s}
+.capsules-card .capsule-imgs{display:flex;gap:10px;margin-top:20px}
+.capsule-img{width:80px;height:60px;border-radius:12px;object-fit:cover;background:var(--surface-high);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.capsule-img svg{width:28px;height:28px;color:var(--on-surface-muted)}
+.ai-card .card-label{color:var(--accent-green)}
+.ai-card h3{font-size:2rem}
+.ai-btns{display:flex;gap:10px;margin-top:20px}
+.ai-btn{flex:1;padding:12px;border-radius:var(--radius-pill);font-family:var(--font-body);font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.4s var(--spring);border:none}
+.ai-btn-primary{background:var(--primary-grad);color:#fff;box-shadow:0 4px 16px rgba(99,86,143,0.4)}
+.ai-btn-primary:hover{transform:scale(1.05);box-shadow:0 8px 24px rgba(99,86,143,0.55)}
+.ai-btn-secondary{background:var(--surface-high);color:var(--on-surface)}
+.ai-btn-secondary:hover{background:var(--surface-highest);transform:scale(1.05)}
+.neural-card{display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(163,166,255,0.1) 0%,rgba(92,94,255,0.06) 100%);border:1px solid rgba(163,166,255,0.3);backdrop-filter:blur(16px);padding:32px 24px;border-radius:24px;position:relative;overflow:hidden;transition:all 0.4s var(--spring)}
+.neural-visual{width:140px;height:140px;position:relative;margin:0 auto 20px;display:flex;align-items:center;justify-content:center}
+.neural-visual::before{content:'';position:absolute;inset:-12px;border-radius:50%;background:conic-gradient(from 0deg,rgba(163,166,255,0.5),rgba(92,94,255,0.3),rgba(163,166,255,0.25),transparent);animation:neural-wave 6s linear infinite;z-index:-1}
+.neural-visual::after{content:'';position:absolute;inset:-20px;border-radius:50%;background:conic-gradient(from 180deg,rgba(92,94,255,0.3),rgba(163,166,255,0.15),transparent);animation:neural-wave 8s linear infinite reverse;z-index:-1;opacity:0.4}
+.neural-particle{position:absolute;width:4px;height:4px;background:rgba(163,166,255,0.8);border-radius:50%;animation:float-particle-neural 3s infinite}
+.neural-particle:nth-child(1){left:30%;top:15%;animation-delay:0s}
+.neural-particle:nth-child(2){right:25%;top:35%;animation-delay:0.5s}
+.neural-particle:nth-child(3){left:20%;bottom:30%;animation-delay:1s}
+.neural-particle:nth-child(4){right:30%;bottom:20%;animation-delay:1.5s}
+.neural-core{position:absolute;width:90px;height:110px;display:flex;align-items:center;justify-content:center;animation:subtle-pulse 2s ease-in-out infinite;background:radial-gradient(circle,rgba(163,166,255,0.15) 0%,transparent 80%);border-radius:50%;box-shadow:0 0 40px rgba(163,166,255,0.6),0 0 60px rgba(163,166,255,0.3),inset 0 0 30px rgba(163,166,255,0.2)}
+.neural-core svg{width:85px;height:100px;color:#a3a6ff;filter:drop-shadow(0 0 20px rgba(163,166,255,1)) drop-shadow(0 0 10px rgba(163,166,255,0.8));animation:glow-shift 4s ease-in-out infinite,neural-icon-pulse 2s ease-in-out infinite}
+@keyframes neural-wave{from{transform:rotate(0deg) scale(1)}to{transform:rotate(360deg) scale(1.1)}}
+@keyframes float-particle-neural{0%{opacity:0;transform:translate(0,0) scale(1)}50%{opacity:1}100%{opacity:0;transform:translate(10px,-10px) scale(0.3)}}
+@keyframes subtle-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+@keyframes glow-shift{0%,100%{filter:drop-shadow(0 0 16px rgba(163,166,255,0.9)) drop-shadow(0 0 8px rgba(163,166,255,0.6))}50%{filter:drop-shadow(0 0 20px rgba(92,94,255,0.95)) drop-shadow(0 0 12px rgba(92,94,255,0.7))}}
+@keyframes neural-icon-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.05);opacity:0.9}}
+.progress-bar-wrap{width:100%;margin-top:20px;position:relative;z-index:1}
+.progress-label{display:flex;justify-content:space-between;font-size:0.65rem;font-weight:700;letter-spacing:0.18em;color:rgba(163,166,255,0.7);margin-bottom:12px;text-transform:uppercase}
+.progress-track{width:100%;height:5px;background:rgba(163,166,255,0.08);border-radius:12px;overflow:hidden;border:0.5px solid rgba(163,166,255,0.15);box-shadow:inset 0 1px 2px rgba(0,0,0,0.2)}
+.progress-fill{height:100%;border-radius:12px;background:linear-gradient(90deg,#a3a6ff 0%,#5c5eff 100%);animation:grow-bar 2.5s cubic-bezier(0.34,1.56,0.64,1) forwards;box-shadow:0 0 16px rgba(163,166,255,0.8),inset 0 1px 1px rgba(255,255,255,0.3)}
+@keyframes grow-bar{from{width:0}to{width:85%}}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1>THE ARCHIVIST</h1>
+    <p>Digital Ghost</p>
+  </div>
+  <nav>
+    <div class="nav-item active" onclick="window.location.href='page2-dashboard.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Dashboard</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='page3-trusted-circle.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><path d="M3 20c0-4 2.7-7 6-7 1.2 0 2.3.4 3.2 1.1"/><path d="M13 20c0-2.4 1.8-4.4 4-4.4s4 2 4 4.4"/></svg>
+      <span>Trusted Circle</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='page4-hidden-keys.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="15" r="4"/><path d="M12 15h9"/><path d="M18 12v6"/></svg>
+      <span>Hidden Keys</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='page5-memory-capsules.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M3 12h18M3 17h18"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+      <span>Memory Capsules</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='page6-legacy-ai.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+      <span>Legacy AI</span>
+    </div>
+  </nav>
+  <div class="sidebar-bottom">
+    <button class="stay-alive-btn">STAY ALIVE</button>
+    <div class="user-card">
+      <div class="user-avatar">DE</div>
+      <div class="user-info">
+        <h4>Digital Echo</h4>
+        <p>STATUS: ACTIVE</p>
+      </div>
+    </div>
+  </div>
+</aside>
+<main class="main">
+  <header class="topbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search-input" type="text" placeholder="Search archive...">
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="toggleTheme()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+      <button class="icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </button>
+      <button class="avatar-btn">DE</button>
+    </div>
+  </header>
+  <div class="content">
+    <div class="hero">
+      <h2>Your Legacy<br><span>at a Glance.</span></h2>
+      <div class="hero-meta">
+        <span class="status-badge"><span class="status-dot"></span>VAULT ENCRYPTED</span>
+        <span class="status-badge" style="margin-left:8px">LAST PULSE: 2M AGO</span>
+      </div>
+    </div>
+    <div class="grid-main">
+      <div class="card trusted-circle" onclick="window.location.href='page3-trusted-circle.html'">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="card-icon-wrap" style="background:rgba(91,143,212,0.15)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#5B8FD4" stroke-width="2"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><path d="M3 20c0-4 2.7-7 6-7 1.2 0 2.3.4 3.2 1.1"/><path d="M13 20c0-2.4 1.8-4.4 4-4.4s4 2 4 4.4"/></svg>
+          </div>
+          <span class="card-label">PRIMARY NODE</span>
+        </div>
+        <h3>Trusted Circle</h3>
+        <p>Four designated archivists have access to your emergency protocols. Pulse status is normal.</p>
+        <div class="trusted-avatars">
+          <div class="ta" style="background:linear-gradient(135deg,#e07070,#b84040)">AK</div>
+          <div class="ta" style="background:linear-gradient(135deg,#5B8FD4,#2a5fa0)">RJ</div>
+          <div class="ta" style="background:linear-gradient(135deg,#6DBF8A,#3a8a56)">ML</div>
+          <div class="ta ta-more">+1</div>
+        </div>
+      </div>
+      <div class="side-cards">
+        <div class="card pulse-card">
+          <div class="pulse-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg>
+          </div>
+          <div class="card-label">HEARTBEAT ACTIVE</div>
+          <h3 style="font-size:1.2rem">Pulse System</h3>
+          <div class="heartbeat-line">
+            <svg viewBox="0 0 200 32" preserveAspectRatio="none">
+              <path class="heartbeat-path" d="M0,16 L40,16 L50,4 L60,28 L70,16 L80,16 L90,16 L100,4 L110,28 L120,16 L160,16 L170,4 L180,28 L190,16 L200,16"/>
+            </svg>
+          </div>
+          <button class="update-sig-btn">UPDATE SIGNATURE</button>
+        </div>
+        <div class="card hidden-keys-card" onclick="window.location.href='page4-hidden-keys.html'">
+          <div class="keys-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="15" r="4"/><path d="M12 15h9"/><path d="M18 12v6"/></svg>
+            <span style="font-size:0.85rem;font-weight:600;color:var(--primary-container)">Hidden Keys</span>
+          </div>
+          <div class="keys-count">12</div>
+          <p style="font-size:0.8rem">encrypted credentials secured in the black vault.</p>
+        </div>
+      </div>
+    </div>
+    <div class="grid-bottom">
+      <div class="card capsules-card" onclick="window.location.href='page5-memory-capsules.html'">
+        <div class="card-icon-wrap" style="background:rgba(229,160,155,0.15)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#E5A09B" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </div>
+        <h3>Memory Capsules</h3>
+        <p>42 artifacts scheduled for release in 2045. Time-locked encryption active.</p>
+        <div class="capsule-imgs">
+          <div class="capsule-img">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+          </div>
+          <div class="capsule-img">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14,2 14,8 20,8"/></svg>
+          </div>
+          <div class="capsule-img">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16 10,8"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="card ai-card" onclick="window.location.href='page6-legacy-ai.html'">
+        <span class="card-label" style="color:var(--accent-green)">LEGACY AI ONLINE</span>
+        <h3>Meet your<br>Digital Echo.</h3>
+        <p>The Archivist AI has processed 14,000 signals. It is now ready to simulate your patterns.</p>
+        <div class="ai-btns" onclick="event.stopPropagation()">
+          <button class="ai-btn ai-btn-primary" onclick="window.location.href='page6-legacy-ai.html'">Start Dialogue</button>
+          <button class="ai-btn ai-btn-secondary">View Insights</button>
+        </div>
+      </div>
+      <div class="card neural-card">
+        <div class="neural-visual">
+          <div class="neural-particle"></div>
+          <div class="neural-particle"></div>
+          <div class="neural-particle"></div>
+          <div class="neural-particle"></div>
+          <div class="neural-core">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="2.5" fill="currentColor" opacity="0.9"/>
+              <circle cx="5" cy="4" r="1.8" fill="currentColor" opacity="0.7"/>
+              <circle cx="12" cy="2" r="1.8" fill="currentColor" opacity="0.7"/>
+              <circle cx="19" cy="4" r="1.8" fill="currentColor" opacity="0.7"/>
+              <circle cx="3" cy="12" r="1.6" fill="currentColor" opacity="0.7"/>
+              <circle cx="21" cy="12" r="1.6" fill="currentColor" opacity="0.7"/>
+              <circle cx="5" cy="20" r="1.8" fill="currentColor" opacity="0.7"/>
+              <circle cx="12" cy="22" r="1.8" fill="currentColor" opacity="0.7"/>
+              <circle cx="19" cy="20" r="1.8" fill="currentColor" opacity="0.7"/>
+              <path d="M 7 5 L 10.5 11 M 5 4 L 12 12 M 14.5 11 L 17 5" stroke="currentColor" opacity="0.6" stroke-width="0.9"/>
+              <path d="M 19 5 L 14.5 11 M 19 4 L 12 12 M 10.5 11 L 5 5" stroke="currentColor" opacity="0.6" stroke-width="0.9"/>
+              <path d="M 3 12 L 9.5 12.5 M 21 12 L 14.5 12.5" stroke="currentColor" opacity="0.6" stroke-width="0.9"/>
+              <path d="M 7 19 L 10.5 13 M 5 20 L 12 12 M 14.5 13 L 17 19" stroke="currentColor" opacity="0.6" stroke-width="0.9"/>
+              <path d="M 19 19 L 14.5 13 M 19 20 L 12 12 M 10.5 13 L 5 19" stroke="currentColor" opacity="0.6" stroke-width="0.9"/>
+            </svg>
+          </div>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-label"><span>NEURAL MAPPING</span><span>85%</span></div>
+          <div class="progress-track"><div class="progress-fill"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+function toggleTheme(){
+  const html=document.documentElement;
+  const isDark=html.getAttribute('data-theme')==='dark';
+  html.setAttribute('data-theme',isDark?'light':'dark');
+}
+</script>
+</body>
+</html>

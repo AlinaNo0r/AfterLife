@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trusted Circle — The Archivist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#63568F;--primary-container:#B8A9E8;--primary-grad:linear-gradient(135deg,#63568F,#B8A9E8);--surface:#0E0E12;--surface-low:#161620;--surface-lowest:#1E1E2A;--surface-high:#252535;--surface-highest:#2E2E40;--on-surface:#E8E6F0;--on-surface-muted:#9997AA;--accent-yellow:#E07070;--accent-blue:#5B8FD4;--accent-green:#6DBF8A;--glass-bg:rgba(99,86,143,0.15);--glass-border:rgba(184,169,232,0.15);--shadow:0 20px 40px rgba(0,0,0,0.35);--shadow-sm:0 8px 24px rgba(0,0,0,0.25);--spring:cubic-bezier(0.34,1.56,0.64,1);--font-display:'Lexend',sans-serif;--font-body:'Plus Jakarta Sans',sans-serif;--radius-pill:999px;--radius-card:20px;--radius-lg:16px;--sidebar-w:220px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font-body);background:var(--surface);color:var(--on-surface);display:flex}
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);height:100vh;background:var(--surface-low);display:flex;flex-direction:column;padding:28px 0;position:relative;z-index:10}
+.sidebar-logo{padding:0 24px 32px;cursor:pointer}
+.sidebar-logo h1{font-family:var(--font-display);font-size:1.1rem;font-weight:700;letter-spacing:0.08em;color:var(--on-surface);line-height:1.1}
+.sidebar-logo p{font-size:0.7rem;font-weight:500;color:var(--primary-container);letter-spacing:0.12em;margin-top:3px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 20px;margin:2px 12px;border-radius:var(--radius-pill);cursor:pointer;font-size:0.875rem;font-weight:500;color:var(--on-surface-muted);transition:all 0.3s var(--spring);position:relative;user-select:none}
+.nav-item:hover{color:var(--on-surface);background:var(--glass-bg)}
+.nav-item.active{background:var(--primary);color:#fff;box-shadow:0 4px 16px rgba(99,86,143,0.4)}
+.nav-icon{width:20px;height:20px;flex-shrink:0;opacity:0.8}
+.nav-item.active .nav-icon{opacity:1}
+.sidebar-bottom{margin-top:auto;padding:0 16px}
+.stay-alive-btn{width:100%;padding:14px;background:var(--primary-grad);border:none;border-radius:var(--radius-pill);font-family:var(--font-body);font-size:0.8rem;font-weight:700;letter-spacing:0.12em;color:#fff;cursor:pointer;transition:all 0.4s var(--spring);box-shadow:0 4px 20px rgba(99,86,143,0.5);margin-bottom:16px}
+.stay-alive-btn:hover{transform:scale(1.04)}
+.user-card{display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface-lowest);border-radius:var(--radius-lg);cursor:pointer}
+.user-avatar{width:36px;height:36px;border-radius:50%;background:var(--primary-grad);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;color:#fff}
+.user-info h4{font-size:0.8rem;font-weight:600;color:var(--on-surface)}
+.user-info p{font-size:0.65rem;font-weight:500;color:var(--accent-green);letter-spacing:0.1em}
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{display:flex;align-items:center;gap:16px;padding:20px 32px;background:var(--glass-bg);backdrop-filter:blur(20px);border-bottom:1px solid var(--glass-border);flex-shrink:0}
+.search-wrap{flex:1;max-width:400px;position:relative}
+.search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--on-surface-muted)}
+.search-input{width:100%;padding:10px 14px 10px 40px;background:var(--surface-lowest);border:none;border-radius:var(--radius-pill);font-family:var(--font-body);font-size:0.875rem;color:var(--on-surface);outline:none}
+.topbar-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.icon-btn{width:40px;height:40px;border-radius:50%;background:var(--surface-lowest);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.35s var(--spring);color:var(--on-surface-muted)}
+.icon-btn:hover{background:var(--surface-high);transform:scale(1.1)}
+.icon-btn svg{width:18px;height:18px}
+.avatar-btn{width:40px;height:40px;border-radius:50%;background:var(--primary-grad);border:2px solid var(--primary-container);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;color:#fff}
+.content{flex:1;overflow-y:auto;padding:36px 32px;scroll-behavior:smooth}
+.content::-webkit-scrollbar{width:6px}
+.content::-webkit-scrollbar-thumb{background:var(--surface-highest);border-radius:4px}
+.page-header{margin-bottom:28px}
+.page-header h2{font-family:var(--font-display);font-size:2rem;font-weight:600;letter-spacing:-0.02em}
+.page-header p{color:var(--on-surface-muted);margin-top:6px;font-size:0.9rem}
+.circle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.circle-member{background:var(--surface-lowest);border-radius:var(--radius-card);padding:24px;text-align:center;transition:all 0.4s var(--spring);cursor:pointer;box-shadow:var(--shadow-sm)}
+.circle-member:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.circle-member .avatar{width:64px;height:64px;border-radius:50%;background:var(--primary-grad);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:#fff;position:relative}
+.circle-member .avatar .status{position:absolute;bottom:2px;right:2px;width:12px;height:12px;border-radius:50%;border:2px solid var(--surface-lowest)}
+.status-active{background:var(--accent-green)}
+.status-pending{background:var(--accent-yellow)}
+.circle-member h4{font-weight:600;font-size:0.95rem;color:var(--on-surface)}
+.circle-member p{font-size:0.78rem;color:var(--on-surface-muted);margin-top:4px}
+.circle-member .role-tag{display:inline-block;margin-top:10px;padding:4px 12px;background:var(--glass-bg);border-radius:var(--radius-pill);font-size:0.7rem;font-weight:600;color:var(--primary-container)}
+.add-member-btn{border:2px dashed var(--surface-highest);background:transparent;color:var(--on-surface-muted)}
+.add-member-btn:hover{border-color:var(--primary-container);color:var(--primary-container);background:var(--glass-bg)}
+.add-member-btn .plus{font-size:2rem;font-weight:300;margin-bottom:8px}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1>THE ARCHIVIST</h1>
+    <p>Digital Ghost</p>
+  </div>
+  <nav>
+    <div class="nav-item" onclick="window.location.href='page2-dashboard.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Dashboard</span>
+    </div>
+    <div class="nav-item active" onclick="window.location.href='page3-trusted-circle.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><path d="M3 20c0-4 2.7-7 6-7 1.2 0 2.3.4 3.2 1.1"/><path d="M13 20c0-2.4 1.8-4.4 4-4.4s4 2 4 4.4"/></svg>
+      <span>Trusted Circle</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='page4-hidden-keys.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="15" r="4"/><path d="M12 15h9"/><path d="M18 12v6"/></svg>
+      <span>Hidden Keys</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='page5-memory-capsules.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M3 12h18M3 17h18"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+      <span>Memory Capsules</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='page6-legacy-ai.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+      <span>Legacy AI</span>
+    </div>
+  </nav>
+  <div class="sidebar-bottom">
+    <button class="stay-alive-btn">STAY ALIVE</button>
+    <div class="user-card">
+      <div class="user-avatar">DE</div>
+      <div class="user-info">
+        <h4>Digital Echo</h4>
+        <p>STATUS: ACTIVE</p>
+      </div>
+    </div>
+  </div>
+</aside>
+<main class="main">
+  <header class="topbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search-input" type="text" placeholder="Search archive...">
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="toggleTheme()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+      <button class="icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </button>
+      <button class="avatar-btn">DE</button>
+    </div>
+  </header>
+  <div class="content">
+    <div class="page-header">
+      <h2>Trusted Circle</h2>
+      <p>These people will be your voice when you no longer can speak.</p>
+    </div>
+    <div class="circle-grid">
+      <div class="circle-member">
+        <div class="avatar" style="background:linear-gradient(135deg,#e07070,#b84040)">
+          AK
+          <span class="status status-active"></span>
+        </div>
+        <h4>Arjun Kapoor</h4>
+        <p>Primary Archivist</p>
+        <span class="role-tag">Emergency Access</span>
+      </div>
+      <div class="circle-member">
+        <div class="avatar" style="background:linear-gradient(135deg,#5B8FD4,#2a5fa0)">
+          RJ
+          <span class="status status-active"></span>
+        </div>
+        <h4>Riya Joshi</h4>
+        <p>Secondary Archivist</p>
+        <span class="role-tag">Message Relay</span>
+      </div>
+      <div class="circle-member">
+        <div class="avatar" style="background:linear-gradient(135deg,#6DBF8A,#3a8a56)">
+          ML
+          <span class="status status-active"></span>
+        </div>
+        <h4>Maya Lim</h4>
+        <p>Guardian</p>
+        <span class="role-tag">Key Release</span>
+      </div>
+      <div class="circle-member">
+        <div class="avatar" style="background:linear-gradient(135deg,#F5C842,#c89a00)">
+          SM
+          <span class="status status-pending"></span>
+        </div>
+        <h4>Samuel Mwangi</h4>
+        <p>Pending Verification</p>
+        <span class="role-tag">Invite Sent</span>
+      </div>
+      <div class="circle-member add-member-btn">
+        <div class="plus">+</div>
+        <h4>Add Member</h4>
+        <p>Expand your circle</p>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+function toggleTheme(){
+  const html=document.documentElement;
+  const isDark=html.getAttribute('data-theme')==='dark';
+  html.setAttribute('data-theme',isDark?'light':'dark');
+}
+</script>
+</body>
+</html>

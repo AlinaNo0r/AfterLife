@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legacy AI — The Archivist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#63568F;--primary-container:#B8A9E8;--primary-grad:linear-gradient(135deg,#63568F,#B8A9E8);--surface:#0E0E12;--surface-low:#161620;--surface-lowest:#1E1E2A;--surface-high:#252535;--surface-highest:#2E2E40;--on-surface:#E8E6F0;--on-surface-muted:#9997AA;--accent-green:#6DBF8A;--glass-bg:rgba(99,86,143,0.15);--glass-border:rgba(184,169,232,0.15);--shadow:0 20px 40px rgba(0,0,0,0.35);--shadow-sm:0 8px 24px rgba(0,0,0,0.25);--spring:cubic-bezier(0.34,1.56,0.64,1);--font-display:'Lexend',sans-serif;--font-body:'Plus Jakarta Sans',sans-serif;--radius-pill:999px;--radius-card:20px;--radius-lg:16px;--sidebar-w:220px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font-body);background:var(--surface);color:var(--on-surface);display:flex}
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);height:100vh;background:var(--surface-low);display:flex;flex-direction:column;padding:28px 0;position:relative;z-index:10}
+.sidebar-logo{padding:0 24px 32px;cursor:pointer}
+.sidebar-logo h1{font-family:var(--font-display);font-size:1.1rem;font-weight:700;letter-spacing:0.08em;color:var(--on-surface);line-height:1.1}
+.sidebar-logo p{font-size:0.7rem;font-weight:500;color:var(--primary-container);letter-spacing:0.12em;margin-top:3px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 20px;margin:2px 12px;border-radius:var(--radius-pill);cursor:pointer;font-size:0.875rem;font-weight:500;color:var(--on-surface-muted);transition:all 0.3s var(--spring);position:relative;user-select:none}
+.nav-item:hover{color:var(--on-surface);background:var(--glass-bg)}
+.nav-item.active{background:var(--primary);color:#fff;box-shadow:0 4px 16px rgba(99,86,143,0.4)}
+.nav-icon{width:20px;height:20px;flex-shrink:0;opacity:0.8}
+.nav-item.active .nav-icon{opacity:1}
+.sidebar-bottom{margin-top:auto;padding:0 16px}
+.stay-alive-btn{width:100%;padding:14px;background:var(--primary-grad);border:none;border-radius:var(--radius-pill);font-family:var(--font-body);font-size:0.8rem;font-weight:700;letter-spacing:0.12em;color:#fff;cursor:pointer;transition:all 0.4s var(--spring);box-shadow:0 4px 20px rgba(99,86,143,0.5);margin-bottom:16px}
+.stay-alive-btn:hover{transform:scale(1.04)}
+.user-card{display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface-lowest);border-radius:var(--radius-lg);cursor:pointer}
+.user-avatar{width:36px;height:36px;border-radius:50%;background:var(--primary-grad);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;color:#fff}
+.user-info h4{font-size:0.8rem;font-weight:600;color:var(--on-surface)}
+.user-info p{font-size:0.65rem;font-weight:500;color:var(--accent-green);letter-spacing:0.1em}
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{display:flex;align-items:center;gap:16px;padding:20px 32px;background:var(--glass-bg);backdrop-filter:blur(20px);border-bottom:1px solid var(--glass-border);flex-shrink:0}
+.search-wrap{flex:1;max-width:400px;position:relative}
+.search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--on-surface-muted)}
+.search-input{width:100%;padding:10px 14px 10px 40px;background:var(--surface-lowest);border:none;border-radius:var(--radius-pill);font-family:var(--font-body);font-size:0.875rem;color:var(--on-surface);outline:none}
+.topbar-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.icon-btn{width:40px;height:40px;border-radius:50%;background:var(--surface-lowest);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.35s var(--spring);color:var(--on-surface-muted)}
+.icon-btn:hover{background:var(--surface-high);transform:scale(1.1)}
+.icon-btn svg{width:18px;height:18px}
+.avatar-btn{width:40px;height:40px;border-radius:50%;background:var(--primary-grad);border:2px solid var(--primary-container);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;color:#fff}
+.content{flex:1;overflow-y:auto;padding:36px 32px;scroll-behavior:smooth}
+.content::-webkit-scrollbar{width:6px}
+.content::-webkit-scrollbar-thumb{background:var(--surface-highest);border-radius:4px}
+.page-header{margin-bottom:28px}
+.page-header h2{font-family:var(--font-display);font-size:2rem;font-weight:600;letter-spacing:-0.02em}
+.page-header p{color:var(--on-surface-muted);margin-top:6px;font-size:0.9rem}
+.ai-chat-wrap{display:grid;grid-template-columns:1fr 340px;gap:24px;height:calc(100vh - 220px)}
+.chat-window{background:var(--surface-lowest);border-radius:var(--radius-card);display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-sm)}
+.chat-header{padding:20px 24px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:12px}
+.ai-dot{width:10px;height:10px;border-radius:50%;background:var(--accent-green);animation:pulse-dot 2s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.3)}}
+.chat-messages{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:16px}
+.chat-messages::-webkit-scrollbar{width:4px}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--surface-highest);border-radius:4px}
+.msg{max-width:80%;animation:fadeUp 0.3s var(--spring) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.msg-ai{align-self:flex-start}
+.msg-user{align-self:flex-end}
+.msg-bubble{padding:12px 16px;border-radius:16px;font-size:0.875rem;line-height:1.6}
+.msg-ai .msg-bubble{background:var(--surface-high);color:var(--on-surface);border-bottom-left-radius:4px}
+.msg-user .msg-bubble{background:var(--primary-grad);color:#fff;border-bottom-right-radius:4px}
+.msg-time{font-size:0.65rem;color:var(--on-surface-muted);margin-top:4px}
+.msg-ai .msg-time{text-align:left}
+.msg-user .msg-time{text-align:right}
+.chat-input-row{padding:16px 20px;border-top:1px solid var(--glass-border);display:flex;gap:10px;align-items:center}
+.chat-input{flex:1;padding:12px 18px;background:var(--surface-high);border:none;border-radius:var(--radius-pill);font-family:var(--font-body);font-size:0.875rem;color:var(--on-surface);outline:none;transition:all 0.3s var(--spring)}
+.chat-input:focus{background:var(--surface-highest);box-shadow:0 0 0 2px rgba(99,86,143,0.4)}
+.chat-send{width:40px;height:40px;border-radius:50%;background:var(--primary-grad);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.35s var(--spring);flex-shrink:0}
+.chat-send:hover{transform:scale(1.1) rotate(-10deg)}
+.chat-send:active{transform:scale(0.92)}
+.chat-send svg{width:18px;height:18px;color:#fff}
+.insights-panel{display:flex;flex-direction:column;gap:16px}
+.insight-card{background:var(--surface-lowest);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm)}
+.insight-card h4{font-weight:600;font-size:0.9rem;margin-bottom:12px;color:var(--on-surface)}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--glass-border)}
+.stat-row:last-child{border-bottom:none}
+.stat-row span:first-child{font-size:0.8rem;color:var(--on-surface-muted)}
+.stat-row span:last-child{font-size:0.8rem;font-weight:600;color:var(--on-surface)}
+.pattern-bar{height:6px;background:var(--surface-high);border-radius:4px;margin-top:6px;overflow:hidden}
+.pattern-fill{height:100%;border-radius:4px;background:var(--primary-grad);transition:width 1s var(--spring)}
+.ai-btn{flex:1;padding:12px;border-radius:var(--radius-pill);font-family:var(--font-body);font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.4s var(--spring);border:none}
+.ai-btn-secondary{background:var(--surface-high);color:var(--on-surface);text-align:left;padding:10px 14px;font-size:0.78rem;border-radius:12px}
+.ai-btn-secondary:hover{background:var(--surface-highest);transform:scale(1.05)}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1>THE ARCHIVIST</h1>
+    <p>Digital Ghost</p>
+  </div>
+  <nav>
+    <div class="nav-item" onclick="window.location.href='page2-dashboard.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Dashboard</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='page3-trusted-circle.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><path d="M3 20c0-4 2.7-7 6-7 1.2 0 2.3.4 3.2 1.1"/><path d="M13 20c0-2.4 1.8-4.4 4-4.4s4 2 4 4.4"/></svg>
+      <span>Trusted Circle</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='page4-hidden-keys.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="15" r="4"/><path d="M12 15h9"/><path d="M18 12v6"/></svg>
+      <span>Hidden Keys</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='page5-memory-capsules.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M3 12h18M3 17h18"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+      <span>Memory Capsules</span>
+    </div>
+    <div class="nav-item active" onclick="window.location.href='page6-legacy-ai.html'">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+      <span>Legacy AI</span>
+    </div>
+  </nav>
+  <div class="sidebar-bottom">
+    <button class="stay-alive-btn">STAY ALIVE</button>
+    <div class="user-card">
+      <div class="user-avatar">DE</div>
+      <div class="user-info">
+        <h4>Digital Echo</h4>
+        <p>STATUS: ACTIVE</p>
+      </div>
+    </div>
+  </div>
+</aside>
+<main class="main">
+  <header class="topbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search-input" type="text" placeholder="Search archive...">
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="toggleTheme()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+      <button class="icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </button>
+      <button class="avatar-btn">DE</button>
+    </div>
+  </header>
+  <div class="content">
+    <div class="page-header">
+      <h2>Digital Echo</h2>
+      <p>Your AI counterpart, trained on 14,000 signals of your thoughts, words, and memories.</p>
+    </div>
+    <div class="ai-chat-wrap">
+      <div class="chat-window">
+        <div class="chat-header">
+          <div class="ai-dot"></div>
+          <div>
+            <h4 style="font-weight:600;font-size:0.9rem">Digital Echo · Active</h4>
+            <p style="font-size:0.7rem;color:var(--on-surface-muted)">Neural mapping at 85%</p>
+          </div>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg msg-ai">
+            <div class="msg-bubble">Hello. I am your Digital Echo — a reflection of your patterns, memories, and voice. What shall we explore today?</div>
+            <div class="msg-time">Just now</div>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input class="chat-input" id="chatInput" type="text" placeholder="Ask your Echo anything..." onkeydown="if(event.key==='Enter')sendMessage()">
+          <button class="chat-send" onclick="sendMessage()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9 22,2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="insights-panel">
+        <div class="insight-card">
+          <h4>Signal Statistics</h4>
+          <div class="stat-row"><span>Total Signals</span><span>14,247</span></div>
+          <div class="stat-row"><span>Memory Depth</span><span>8.3 years</span></div>
+          <div class="stat-row"><span>Voice Samples</span><span>432 clips</span></div>
+          <div class="stat-row"><span>Pattern Match</span><span style="color:var(--accent-green)">94.7%</span></div>
+        </div>
+        <div class="insight-card">
+          <h4>Dominant Patterns</h4>
+          <div style="margin-top:4px">
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px"><span>Optimism</span><span style="color:var(--on-surface-muted)">87%</span></div>
+            <div class="pattern-bar"><div class="pattern-fill" style="width:87%"></div></div>
+          </div>
+          <div style="margin-top:12px">
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px"><span>Curiosity</span><span style="color:var(--on-surface-muted)">92%</span></div>
+            <div class="pattern-bar"><div class="pattern-fill" style="width:92%;background:linear-gradient(135deg,#6DBF8A,#3a8a56)"></div></div>
+          </div>
+          <div style="margin-top:12px">
+            <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px"><span>Empathy</span><span style="color:var(--on-surface-muted)">79%</span></div>
+            <div class="pattern-bar"><div class="pattern-fill" style="width:79%;background:linear-gradient(135deg,#5B8FD4,#2a5fa0)"></div></div>
+          </div>
+        </div>
+        <div class="insight-card">
+          <h4>Quick Prompts</h4>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+            <button class="ai-btn ai-btn-secondary" onclick="quickPrompt('What are my core values?')">What are my core values? ↗</button>
+            <button class="ai-btn ai-btn-secondary" onclick="quickPrompt('Tell me a story about my life')">Tell me a story about my life ↗</button>
+            <button class="ai-btn ai-btn-secondary" onclick="quickPrompt('What message would I leave?')">What message would I leave? ↗</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+const aiResponses=[
+  "Based on your memory signals, you've shown remarkable resilience through adversity. Your patterns suggest deep empathy and a desire to protect those around you.",
+  "I've analyzed 14,247 signals and found a consistent thread — you believe in human connection above all else. This is your legacy.",
+  "Your curiosity has been a defining trait since your earliest recorded entries. You asked questions others were afraid to voice.",
+  "The patterns in your voice recordings reveal warmth and humor as core emotional signatures. These are what your loved ones will miss most.",
+  "From your writing patterns: you process grief through creativity, find joy in small details, and instinctively protect those weaker than yourself."
+];
+let aiResponseIdx=0;
+function sendMessage(){
+  const input=document.getElementById('chatInput');
+  const msg=input.value.trim();
+  if(!msg)return;
+  addMessage(msg,'user');
+  input.value='';
+  setTimeout(()=>{
+    const resp=aiResponses[aiResponseIdx%aiResponses.length];
+    aiResponseIdx++;
+    addMessage(resp,'ai');
+  },900+Math.random()*600);
+}
+function quickPrompt(text){
+  addMessage(text,'user');
+  setTimeout(()=>{
+    const resp=aiResponses[aiResponseIdx%aiResponses.length];
+    aiResponseIdx++;
+    addMessage(resp,'ai');
+  },900);
+}
+function addMessage(text,who){
+  const container=document.getElementById('chatMessages');
+  const div=document.createElement('div');
+  div.className=`msg msg-${who}`;
+  div.innerHTML=`<div class="msg-bubble">${text}</div><div class="msg-time">${who==='ai'?'Digital Echo · ':'You · '}Just now</div>`;
+  container.appendChild(div);
+  container.scrollTop=container.scrollHeight;
+}
+function toggleTheme(){
+  const html=document.documentElement;
+  const isDark=html.getAttribute('data-theme')==='dark';
+  html.setAttribute('data-theme',isDark?'light':'dark');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Page 1: Login & Signup — The Archivist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #63568F;
+  --primary-container: #B8A9E8;
+  --primary-grad: linear-gradient(135deg, #63568F, #B8A9E8);
+  --surface: #0E0E12;
+  --surface-low: #161620;
+  --surface-lowest: #1E1E2A;
+  --surface-high: #252535;
+  --on-surface: #E8E6F0;
+  --on-surface-muted: #9997AA;
+  --glass-border: rgba(184,169,232,0.15);
+  --spring: cubic-bezier(0.34,1.56,0.64,1);
+  --font-display: 'Lexend', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --radius-pill: 999px;
+  --radius-card: 20px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: var(--font-body); background: var(--surface); color: var(--on-surface); display: flex; align-items: center; justify-content: center; }
+
+.auth-overlay { position: fixed; inset: 0; background: var(--surface); backdrop-filter: blur(20px); z-index: 200; display: flex; align-items: center; justify-content: center; transition: opacity 0.5s var(--spring); opacity: 1; visibility: visible; }
+.auth-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.auth-card { background: var(--surface-lowest); border-radius: var(--radius-card); padding: 40px; width: 460px; max-width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.35); border: 1px solid var(--glass-border); transition: transform 0.3s; }
+.auth-tabs { display: flex; gap: 16px; margin-bottom: 32px; border-bottom: 1px solid var(--glass-border); }
+.auth-tab { padding-bottom: 12px; font-weight: 600; cursor: pointer; color: var(--on-surface-muted); transition: all 0.2s; }
+.auth-tab.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+.auth-input { width: 100%; padding: 14px 16px; background: var(--surface-high); border: none; border-radius: var(--radius-pill); margin-bottom: 16px; font-family: var(--font-body); color: var(--on-surface); }
+.auth-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(99,86,143,0.4); }
+.auth-btn { width: 100%; padding: 14px; background: var(--primary-grad); border: none; border-radius: var(--radius-pill); font-weight: 700; color: white; cursor: pointer; margin-top: 8px; transition: transform 0.2s; }
+.auth-btn:hover { transform: scale(1.02); }
+.auth-switch { text-align: center; margin-top: 24px; font-size: 0.85rem; color: var(--on-surface-muted); }
+.auth-switch span { color: var(--primary); cursor: pointer; font-weight: 600; }
+
+.onboarding-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(12px); z-index: 300; display: none; align-items: center; justify-content: center; transition: opacity 0.4s; }
+.onboarding-overlay.show { display: flex; }
+.onboarding-card { background: var(--surface-lowest); border-radius: var(--radius-card); max-width: 500px; width: 90%; padding: 32px; text-align: center; }
+.onboarding-slide { display: none; animation: fadeUp 0.4s ease; }
+.onboarding-slide.active { display: block; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+.onboarding-icon { font-size: 4rem; margin-bottom: 16px; }
+.onboarding-slide h3 { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 12px; }
+.onboarding-slide p { color: var(--on-surface-muted); line-height: 1.6; }
+.onboarding-dots { display: flex; justify-content: center; gap: 8px; margin: 24px 0; }
+.onboarding-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--on-surface-muted); cursor: pointer; }
+.onboarding-dot.active { background: var(--primary); width: 24px; border-radius: 12px; }
+.onboarding-btn { padding: 12px 32px; background: var(--primary-grad); border: none; border-radius: var(--radius-pill); font-weight: 700; color: white; cursor: pointer; transition: transform 0.2s; }
+.onboarding-btn:hover { transform: scale(1.05); }
+</style>
+</head>
+<body>
+
+<div id="authOverlay" class="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <div class="auth-tab active" data-auth-tab="login">Login</div>
+      <div class="auth-tab" data-auth-tab="signup">Sign Up</div>
+    </div>
+    <div id="loginForm">
+      <input class="auth-input" type="email" placeholder="Email" id="loginEmail">
+      <input class="auth-input" type="password" placeholder="Password" id="loginPassword">
+      <button class="auth-btn" id="loginBtn">Unlock Vault</button>
+      <div class="auth-switch">Don't have an account? <span id="goToSignup">Sign up</span></div>
+    </div>
+    <div id="signupForm" style="display:none">
+      <input class="auth-input" type="text" placeholder="Full Name" id="signupName">
+      <input class="auth-input" type="email" placeholder="Email" id="signupEmail">
+      <input class="auth-input" type="date" placeholder="Date of Birth" id="signupDob">
+      <select class="auth-input" id="signupGender">
+        <option value="">Select Gender</option>
+        <option>Female</option>
+        <option>Male</option>
+        <option>Non-binary</option>
+        <option>Prefer not to say</option>
+      </select>
+      <input class="auth-input" type="password" placeholder="Password" id="signupPassword">
+      <input class="auth-input" type="password" placeholder="Confirm Password" id="signupConfirm">
+      <button class="auth-btn" id="signupBtn">Create Profile</button>
+      <div class="auth-switch">Already have an account? <span id="goToLogin">Login</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="onboardingOverlay" class="onboarding-overlay">
+  <div class="onboarding-card">
+    <div class="onboarding-slide active" data-slide="0">
+      <div class="onboarding-icon">🔐</div>
+      <h3>Welcome to The Archivist</h3>
+      <p>Your digital vault for storing encrypted credentials, memories, and legacy data that will outlive you.</p>
+    </div>
+    <div class="onboarding-slide" data-slide="1">
+      <div class="onboarding-icon">💚</div>
+      <h3>Pulse System</h3>
+      <p>Regular heartbeat checks ensure you're alive. If you miss pulses, your trusted circle is automatically notified.</p>
+    </div>
+    <div class="onboarding-slide" data-slide="2">
+      <div class="onboarding-icon">🧠</div>
+      <h3>Digital Echo</h3>
+      <p>Our AI learns your patterns and preferences, creating a digital representation of your personality for future generations.</p>
+    </div>
+    <div class="onboarding-dots">
+      <div class="onboarding-dot active"></div>
+      <div class="onboarding-dot"></div>
+      <div class="onboarding-dot"></div>
+    </div>
+    <button class="onboarding-btn" onclick="nextOnboardingSlide()">Next</button>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.auth-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    const type = this.getAttribute('data-auth-tab');
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+    if (type === 'login') {
+      document.getElementById('loginForm').style.display = 'block';
+      document.getElementById('signupForm').style.display = 'none';
+    } else {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('signupForm').style.display = 'block';
+    }
+  });
+});
+
+document.getElementById('goToSignup').addEventListener('click', () => document.querySelector('[data-auth-tab="signup"]').click());
+document.getElementById('goToLogin').addEventListener('click', () => document.querySelector('[data-auth-tab="login"]').click());
+
+document.getElementById('loginBtn').addEventListener('click', function() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) { alert('Please fill in all fields'); return; }
+  document.getElementById('authOverlay').classList.add('hidden');
+  setTimeout(() => window.location.href = 'page2-dashboard.html', 500);
+});
+
+document.getElementById('signupBtn').addEventListener('click', function() {
+  const name = document.getElementById('signupName').value;
+  const email = document.getElementById('signupEmail').value;
+  const password = document.getElementById('signupPassword').value;
+  const confirm = document.getElementById('signupConfirm').value;
+  if (!name || !email || !password || !confirm) { alert('Please fill in all fields'); return; }
+  if (password !== confirm) { alert('Passwords do not match'); return; }
+  document.getElementById('authOverlay').classList.add('hidden');
+  setTimeout(() => document.getElementById('onboardingOverlay').classList.add('show'), 500);
+});
+
+let currentSlide = 0;
+const totalSlides = 3;
+function nextOnboardingSlide() {
+  if (currentSlide < totalSlides - 1) {
+    document.querySelectorAll('.onboarding-slide').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.onboarding-dot').forEach(d => d.classList.remove('active'));
+    currentSlide++;
+    document.querySelector(`[data-slide="${currentSlide}"]`).classList.add('active');
+    document.querySelectorAll('.onboarding-dot')[currentSlide].classList.add('active');
+  } else {
+    document.getElementById('onboardingOverlay').classList.remove('show');
+    window.location.href = 'page2-dashboard.html';
+  }
+}
+</script>
+
+</body>
+</html>
