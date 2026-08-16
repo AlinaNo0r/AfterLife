@@ -24,9 +24,15 @@ class CredentialsSerializer(serializers.ModelSerializer):
             'platform_url', 
             'username_on_platform', 
             'email_on_platform',
+            'password',             # 👈 Here, The password field was missing...
             'nominee_details',
             'assigned_nominee_id'
-        ]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  # serializers.py
+        ]    
+        # The Reason of adding extra_kwargs={} : This tells Django that the password data should only travel one way—from the user into the database (Write-Only).
+        #It acts as an absolute privacy shield.
+         extra_kwargs = {
+            'password': {'write_only': True}  # ADD THIS LINE FOR SECURITY
+        }
 
 
 
