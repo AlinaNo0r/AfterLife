@@ -31,7 +31,10 @@ def stay_alive(request):
 
 
 class change_password(APIView):
-    permission_classes = []
+# By putting [IsAuthenticated]
+# Django REST Framework will automatically check if the person making the request is logged in. 
+# If they are not logged in, it will reject them instantly with an error.
+    permission_classes = [IsAuthenticated]
 
     def put(self, request):
         try:
