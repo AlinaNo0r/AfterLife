@@ -6,6 +6,11 @@ from django.contrib.auth.models import AbstractUser
 import os
 import logging
 
+# For encryption and make the master key...
+# from encrypted_model_fields.fields import EncryptedCharField  
+# To uncomment this we have to write this code line (password = EncryptedCharField(max_length=255)) in Credential Class at line numner 133
+
+
 logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────
@@ -128,6 +133,8 @@ class Credentials(models.Model):
 
     #   Replace with EncryptedCharField in production (see docstring above)
     password = models.CharField(max_length=255)
+    # password = EncryptedCharField(max_length=255)
+
 
     assigned_nominee = models.ForeignKey(
         Nominee, on_delete=models.PROTECT, related_name='credentials'
