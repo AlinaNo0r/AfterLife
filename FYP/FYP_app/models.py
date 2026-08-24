@@ -1,8 +1,10 @@
 
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
+from django.conf import settings
+from cryptography.fernet import Fernet
 import os
 import logging
 
@@ -13,8 +15,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 # ──────────────────────────────────────────────
-# Validators
+# Validators (e.g : username)
 # ──────────────────────────────────────────────
 
 def only_alphabets(value):
@@ -23,6 +26,9 @@ def only_alphabets(value):
     if not stripped or not stripped.replace(" ", "").isalpha():
         raise ValidationError("Only alphabets are allowed in the name.")
 
+# ──────────────────────────────────────────────
+# Validate Video 
+# ────────────────────────────────────────────── 
 
 def validate_video(value):
     """Accept common video file extensions only."""
@@ -35,7 +41,7 @@ def validate_video(value):
 
 
 # ──────────────────────────────────────────────
-# User
+# Custom User Model
 # ──────────────────────────────────────────────
 
 class User(AbstractUser):
@@ -56,7 +62,7 @@ class User(AbstractUser):
 
 
 # ──────────────────────────────────────────────
-# Nominee
+# Nominee / BENEFICIARY MODEL
 # ──────────────────────────────────────────────
 
 class Nominee(models.Model):
@@ -103,7 +109,7 @@ class NomineeRole(models.Model):
 
 
 # ──────────────────────────────────────────────
-# Credentials
+# PLATFORM CREDENTIALS VAULT MODEL
 # ──────────────────────────────────────────────
 
 class Credentials(models.Model):
@@ -132,8 +138,7 @@ class Credentials(models.Model):
     email_on_platform = models.EmailField()
 
     #   Replace with EncryptedCharField in production (see docstring above)
-    password = models.CharField(max_length=255)
-    # password = EncryptedCharField(max_length=255)
+    password = models.CharField(max_length=500)
 
 
     assigned_nominee = models.ForeignKey(
@@ -146,11 +151,11 @@ class Credentials(models.Model):
         verbose_name_plural = "Credentials"
 
     def __str__(self):
-        return self.platform
+        return f"{self.platform} Vault Item -> {self.username_on_platform}"
 
 
 # ──────────────────────────────────────────────
-# UserProfile
+# USER PROFILE & HEARTBEAT SWITCH TRACKER
 # ──────────────────────────────────────────────
 
 class UserProfile(models.Model):
@@ -163,17 +168,18 @@ class UserProfile(models.Model):
         User, on_delete=models.CASCADE, related_name='profile'
     )
     last_seen = models.DateTimeField(default=timezone.now)
-    timeout_days = models.IntegerField(default=7)
     status = models.CharField(
-        max_length=10, choices=STATUS_CHOICES, default='active'
+        max_length=20, choices=STATUS_CHOICES, default='active'
     )
     warning_start = models.DateTimeField(null=True, blank=True)
+    timeout_days = models.IntegerField(default=7)
 
     def __str__(self):
-        return f"{self.user.username} — {self.get_status_display()}"
+        # return f"{self.user.username} — {self.get_status_display()}"
+        return f"Profile: {self.user.username} [{self.status}]"
     
     # ──────────────────────────────────────────────
-    # Killswitch Methods
+    # Killswitch Methods / NESTED SECURITY METHODS (Indented Properly)
     # ──────────────────────────────────────────────
 
     def notify_nominees_warning(self):
@@ -196,7 +202,7 @@ class UserProfile(models.Model):
                 confirmation_link = f"{settings.SITE_URL}/api/confirm-death/{self.user.id}/"
                 message = f"""Dear {nominee.nominee_name},
 
-                {self.user.get_full_name()} has not checked in for {self.timeout_days} days.
+                {self.user.get_full_name() or self.user.username} has not checked in for {self.timeout_days} days.
 
                 As a designated Death Witness, we need you to confirm their status.
 
@@ -224,6 +230,39 @@ class UserProfile(models.Model):
                 logger.error(f"Failed to send email to {nominee.nominee_email}: {e}")
 
         logger.info(f"✅ Warning emails sent to {witnesses.count()} witness(es) for {self.user.username}")
+
+
+
+
+        # 🔒 SECURITY UPDATE: Coded the completely missing data-release method!
+    def start_release_process(self):
+        """
+        Loops through all user credentials, decrypts vault passwords, and alerts beneficiaries safely.
+        """
+        from .emails import send_confirmation_request_to_nominee 
+        
+        crypto_engine = Fernet(settings.ENCRYPTION_KEY)
+        user_credentials = self.user.credentials.select_related('assigned_nominee')
+        notified_emails = set()
+
+        for cred in user_credentials:
+            nominee = cred.assigned_nominee
+            
+            if nominee and nominee.nominee_email not in notified_emails:
+                try:
+                    # Decrypt the encrypted password block from the database row
+                    decrypted_bytes = crypto_engine.decrypt(cred.password.encode('utf-8'))
+                    cleartext_password = decrypted_bytes.decode('utf-8')
+                except Exception:
+                    cleartext_password = "[Vault Decryption Failure]"
+
+                # Fire off the secure confirmation inheritance mail
+                send_confirmation_request_to_nominee(
+                    nominee_email=nominee.nominee_email,
+                    nominee_name=nominee.nominee_name,
+                    owner_name=self.user.get_full_name() or self.user.username
+                )
+                notified_emails.add(nominee.nominee_email)
 
 # ──────────────────────────────────────────────
 # VaultItem

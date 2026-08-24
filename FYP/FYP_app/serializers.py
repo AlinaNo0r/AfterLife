@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import password_validation
+from django.conf import settings
+from cryptography.fernet import Fernet 
 from .models import Credentials, Nominee, User
 from django.core.exceptions import ValidationError
 
@@ -33,6 +35,16 @@ class CredentialsSerializer(serializers.ModelSerializer):
          extra_kwargs = {
             'password': {'write_only': True}  # ADD THIS LINE FOR SECURITY
         }
+        
+         # 🔒 SECURITY UPDATE: Added automated password encryption interceptor logic
+    def validate_password(self, value):
+        """
+        Intercepts raw user passwords and securely encrypts them before saving to PostgreSQL.
+        """
+        crypto_engine = Fernet(settings.ENCRYPTION_KEY)
+        # Convert text to binary bytes, scramble it with our key, and save as a safe string
+        encrypted_bytes = crypto_engine.encrypt(value.encode('utf-8'))
+        return encrypted_bytes.decode('utf-8')
 
 
 

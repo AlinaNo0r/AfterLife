@@ -12,6 +12,7 @@ from django.utils import timezone
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def stay_alive(request):
     profile, created = UserProfile.objects.get_or_create(
         user=request.user
@@ -67,6 +68,7 @@ class UserDetailView(generics.RetrieveAPIView):
        return Response(serializer.data)
 
 @api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
 def edit_user(request):
     user = request.user
     allowed_fields = ['first_name', 'last_name', 'email', 'dob', 'gender', 'phone']
@@ -106,7 +108,7 @@ def login_view(request):
                 'id': user.id,
                 'username': user.username,
                 'email': user.email,
-                'full_name': user.get_full_name()
+                'full_name': f"{user.first_name} {user.last_name}"
             }
         }, status=status.HTTP_200_OK)
     else:
@@ -182,6 +184,7 @@ def logout_view(request):
 
 @csrf_exempt
 @api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
 def delete_user(request):
     try:
         user = request.user

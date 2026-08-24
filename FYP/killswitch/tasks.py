@@ -3,6 +3,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from django.utils import timezone
+from django.db import transaction
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,13 +28,19 @@ def check_all_heartbeats():
 
     for profile in profiles:
         try:
-            days_since_last_seen = (now - profile.last_seen).days
+            with transaction.atomic():
+                # Lock database row from external changes until this loop completes
+                profile = UserProfile.objects.select_for_update().get(pk=profile.pk)
+                # Use standard fallback default if field is missing or null
+                timeout_limit = getattr(profile, 'timeout_days', 30) or 30
+                days_since_last_seen = (now - profile.last_seen).days
 
-            
+            # days_since_last_seen = (now - profile.last_seen).days
+
             if days_since_last_seen <= profile.timeout_days:
                 continue
 
-            
+             # === STEP 1: Active → Warning ===
             if profile.status == 'active':
                 profile.status = 'warning'
                 profile.warning_start = now
