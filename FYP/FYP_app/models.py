@@ -304,3 +304,31 @@ class ChatMemory(models.Model):
 
     def __str__(self):
         return f"{self.user.username} — {self.timestamp.strftime('%Y-%m-%d %H:%M')}"
+
+
+
+
+# ---------------------------------------------------------------
+#  OTP Storage Model (Email OTP)
+# ---------------------------------------------------------------
+class EmailOTP(models.Model):
+     """
+    Temporarily tracks 6-digit verification codes for registration and login pipelines.
+    """
+
+    user = models.ForeignKey(User, on_delete=CASCADE, related_name='otp')
+    otp_code = models.CharField(max_length = 6)
+    purpose = models.CharField(max_length = 20, choices=[('register', 'Register Verification'), ('login', '2FA login')])
+    created_at = models.DateTimeField(auto_now_add = True)
+    is_used = models.BooleanField(default = True)
+
+    def is_valid(self):
+         """Validates if the code has been consumed or has exceeded its 5-minute lifespan."""
+         if self.is_used:
+            return False
+            # Validates if time elapsed is under 5 full minutes
+            lifespan = timezone.now() - self.created_at
+            return lifespan.total_seconds(300)
+
+    def __str__(self):
+        return f"OTP for {self.user.username} - {self.purpose}"

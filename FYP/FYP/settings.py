@@ -143,6 +143,19 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 
+# ──────────────────────────────────────────────
+# EMAIL CONFIGURATION (SMTP Settings)
+# ─────────────────────────────────────────────
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = ':smtp//gmail.com'                 # Using Gmail SMTP Server
+# EMAIL_PORT = 587                              # Standard TLS Port
+# EMAIL_USE_TLS = True                          # Secure Connection Enforced
+# EMAIL_HOST_USER = os.environ.get('EMAIL_USER', 'your-project-email@gmail.com')
+# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS', 'your-app-password')
+# DEFAULT_FROM_EMAIL = f"Afterlife Digital Legacy <{EMAIL_HOST_USER}>"
+
+
+
 
 # 🔒 SECURITY UPDATE: Master Key used to symmetrically encrypt and decrypt user passwords
 ENCRYPTION_KEY = b'uX6_8N_j7w290LzkPlKm1N8xQWtR-V94mYnBvC_XDh8='

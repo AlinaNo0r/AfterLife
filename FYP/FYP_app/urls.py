@@ -25,4 +25,14 @@ urlpatterns = [
     path('api/stay-alive/', views.stay_alive, name='stay-alive'),
 
 
+#---------------------------------------------------------------------------------
+    # For OTP.... 
+    path('api/verify-otp/register/', views.verify_registration_otp, name='verify-reg-otp'),
+    path('api/verify-otp/login/', views.verify_login_otp, name='verify-login-otp'),
+
+    # 🔒 SECURITY UPDATE: Nominee Verification Decision Webhooks
+    path('api/verify-status/alive/<int:profile_id>/', views.verify_status_alive, name='verify-alive'),
+    path('api/verify-status/deceased/<int:profile_id>/', views.verify_status_deceased, name='verify-deceased'),
+
+
 ]
