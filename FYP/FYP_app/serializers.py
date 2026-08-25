@@ -32,7 +32,7 @@ class CredentialsSerializer(serializers.ModelSerializer):
         ]    
         # The Reason of adding extra_kwargs={} : This tells Django that the password data should only travel one way—from the user into the database (Write-Only).
         #It acts as an absolute privacy shield.
-         extra_kwargs = {
+        extra_kwargs = {
             'password': {'write_only': True}  # ADD THIS LINE FOR SECURITY
         }
         

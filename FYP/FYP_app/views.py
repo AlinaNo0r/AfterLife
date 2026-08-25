@@ -12,8 +12,8 @@ from django.utils import timezone
 from django.conf import settings 
 from cryptography.fernet import Fernet 
 import random
-from .model import EmailOTP
-from .email import send_otp_email
+from .models import EmailOTP
+from .emails import send_otp_email
 
 # ──────────────────────────────────────────────
 # 1 - STAY ALIBE HEARTBEAT
@@ -169,9 +169,9 @@ def register_view(request):
     )
      
      # Generate 6-digit numerical TOKEN CODE
-     otp_string = str(random.randint(100000, 999999))
-     EmailOTP.objects.create(user=user, code=otp_string, purpose='register')
-     send_otp_email(user.email, otp_string, 'register')
+    otp_string = str(random.randint(100000, 999999))
+    EmailOTP.objects.create(user=user, code=otp_string, purpose='register')
+    send_otp_email(user.email, otp_string, 'register')
 
     return Response({
         'message': 'Account created successfully! A 6-digit activation code has been sent to your email.'

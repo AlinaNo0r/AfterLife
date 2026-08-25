@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'FYP_app',
     'killswitch',
     'rest_framework',
+    'drf_yasg',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -85,16 +86,24 @@ WSGI_APPLICATION = 'FYP.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+
+# 🔒 FORCE SQLITE FOR ARHAAN'S LOCAL CODESPACE SANDBOX TESTING
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'afterlife'),
-        'USER': os.environ.get('DB_USER', 'afterlife_user'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'securepass'),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.environ.get('DB_NAME', 'afterlife'),
+#         'USER': os.environ.get('DB_USER', 'afterlife_user'),
+#         'PASSWORD': os.environ.get('DB_PASSWORD', 'securepass'),
+#         'HOST': os.environ.get('DB_HOST', 'localhost'),
+#         'PORT': os.environ.get('DB_PORT', '5432'),
+#     }
+# }
 
 
 # Password validation

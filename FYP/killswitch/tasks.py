@@ -40,7 +40,7 @@ def check_all_heartbeats():
                 if days_since_last_seen <= profile.timeout_days:
                     continue
 
-            # === STEP 1: Active → Warning ===
+                # === STEP 1: Active → Warning ===
                 if profile.status == 'active':
                     profile.status = 'warning'
                     profile.warning_start = now
@@ -52,34 +52,34 @@ def check_all_heartbeats():
                              f"({days_since_last_seen} days missed)")
 
             # === STEP 2: Warning Phase Milestone Evaluation ===
-            elif profile.status == 'warning':
-                if profile.warning_start:
-                    days_in_warning = (now - profile.warning_start).days
-                else:
-                    days_in_warning = 0
+                elif profile.status == 'warning':
+                    if profile.warning_start:
+                        days_in_warning = (now - profile.warning_start).days
+                    else:
+                        days_in_warning = 0
                 
-                # If the user has failed to check in during the 7-day grace period
-                if days_in_warning > 7:         
-                    logger.warning(f"⏳ Grace period over for {profile.user.username}. Dispatched confirmation request to nominees.")
+                    # If the user has failed to check in during the 7-day grace period
+                    if days_in_warning > 7:         
+                        logger.warning(f"⏳ Grace period over for {profile.user.username}. Dispatched confirmation request to nominees.")
                     
                     # 🔒 SECURITY UPDATE: Instead of a blind data dump, dispatch the interactive decision webhooks to nominees
-                    from FYP_app.emails import send_nominee_verification_email
+                        from FYP_app.emails import send_nominee_verification_email
                     
                     # Fetch all saved nominees for this specific user profile
-                    witnesses = profile.user.nominees.all()
+                        witnesses = profile.user.nominees.all()
                     
-                    if not witnesses.exists():
-                        logger.error(f"❌ Missing Nominees: Cannot escalate validation for user {profile.user.username}")
-                        continue
+                        if not witnesses.exists():
+                            logger.error(f"❌ Missing Nominees: Cannot escalate validation for user {profile.user.username}")
+                            continue
                         
-                    # Loop through nominees and fire the customized verification template emails
-                    for nominee in witnesses:
-                        send_nominee_verification_email(
-                            nominee_email=nominee.nominee_email,
-                            nominee_name=nominee.nominee_name,
-                            owner_name=profile.user.get_full_name() or profile.user.username,
-                            profile_id=profile.id  # Passes database context primary row ID for the email link
-                        )
+                        # Loop through nominees and fire the customized verification template emails
+                        for nominee in witnesses:
+                            send_nominee_verification_email(
+                                nominee_email=nominee.nominee_email,
+                                nominee_name=nominee.nominee_name,
+                                owner_name=profile.user.get_full_name() or profile.user.username,
+                                profile_id=profile.id  # Passes database context primary row ID for the email link
+                            )
                         
                     # Note: We keep their status as 'warning' for now. 
                     # The status changes to 'inactive' ONLY if a nominee clicks the "Deceased Link" view button.
