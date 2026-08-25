@@ -1,4 +1,3 @@
-
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractUser
@@ -172,7 +171,7 @@ class UserProfile(models.Model):
         max_length=20, choices=STATUS_CHOICES, default='active'
     )
     warning_start = models.DateTimeField(null=True, blank=True)
-    timeout_days = models.IntegerField(default=7)
+    timeout_days = models.IntegerField(default=30)
 
     def __str__(self):
         # return f"{self.user.username} — {self.get_status_display()}"
@@ -198,8 +197,10 @@ class UserProfile(models.Model):
 
         for nominee in witnesses:
             try:
-                subject = f"[URGENT] {self.user.get_full_name()} has not checked in"
-                confirmation_link = f"{settings.SITE_URL}/api/confirm-death/{self.user.id}/"
+                subject = f"[URGENT] {self.user.get_full_name() or self.user.username } has not checked in"
+                site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
+                confirmation_link = f"{site_url}/api/confirm-death/{self.user.id}/"
+
                 message = f"""Dear {nominee.nominee_name},
 
                 {self.user.get_full_name() or self.user.username} has not checked in for {self.timeout_days} days.
@@ -213,7 +214,7 @@ class UserProfile(models.Model):
 
                 If no action is taken within 7 days, the system will proceed automatically.
 
-                Death Vault Team
+                Digital Vault Death Confirmation Team
                 """
 
                 send_mail(
@@ -320,7 +321,7 @@ class EmailOTP(models.Model):
     otp_code = models.CharField(max_length = 6)
     purpose = models.CharField(max_length = 20, choices=[('register', 'Register Verification'), ('login', '2FA login')])
     created_at = models.DateTimeField(auto_now_add = True)
-    is_used = models.BooleanField(default = True)
+    is_used = models.BooleanField(default = False)
 
     def is_valid(self):
          """Validates if the code has been consumed or has exceeded its 5-minute lifespan."""
@@ -328,7 +329,7 @@ class EmailOTP(models.Model):
             return False
             # Validates if time elapsed is under 5 full minutes
             lifespan = timezone.now() - self.created_at
-            return lifespan.total_seconds(300)
+            return lifespan.total_seconds() < 300
 
     def __str__(self):
         return f"OTP for {self.user.username} - {self.purpose}"

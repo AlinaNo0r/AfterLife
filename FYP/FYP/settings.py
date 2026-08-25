@@ -50,12 +50,8 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
     ],
-
-
-    
-    # 'DEFAULT_AUTHENTICATION_CLASSES': [],
-    # 'DEFAULT_PERMISSION_CLASSES': [],
 }
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -142,6 +138,8 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 # ──────────────────────────────────────────────
 # EMAIL CONFIGURATION (SMTP Settings)

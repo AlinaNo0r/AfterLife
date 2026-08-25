@@ -4,9 +4,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# ----------------------------------------
-#               OTP Message
-# ----------------------------------------
+# ──────────────────────────────────────────────
+# 1. TWO-FACTOR SECURITY VERIFICATION (OTP)
+# ──────────────────────────────────────────────
 
 def send_otp_email(user_email, otp_code, execution_purpose):
     """
@@ -30,18 +30,19 @@ def send_otp_email(user_email, otp_code, execution_purpose):
     )
 
     try:
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user_email]. fail_silently=False)
-         logger.info(f"OTP email logged cleanly for address: {user_email}")
-         return True
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user_email], fail_silently=False)
+        logger.info(f"OTP email logged cleanly for address: {user_email}")
+        return True
 
     except Exception as e:
         logger.error(f"Failed to log security OTP email payload: {e}")
         return False
 
 
-# -----------------------------------------------------------------
-# Messages for sending warning Notification
-# ------------------------------------------------------------------
+# ──────────────────────────────────────────────
+# 2. ESCALATION & DECISION TRIGGERS (KILLSWITCH)
+# ──────────────────────────────────────────────
+
 def send_legacy_warning_email(user_email, username, total_days_missed):
     """Fires warning alert notice to the owner when inactivity threshold breaks."""
     subject = "⚠️ URGENT: Inactivity Detected on Your Afterlife Account"
@@ -88,6 +89,9 @@ def send_nominee_verification_email(nominee_email, nominee_name, owner_name, pro
         logger.error(f"Failed to dispatch verification email: {e}")
         return False
 
+# ──────────────────────────────────────────────
+# 3. LEGACY HERITAGE TRANSFER (DECRYPTED DUMP)
+# ──────────────────────────────────────────────
 
 def send_final_vault_payload(nominee_email, nominee_name, platform, username, password):
     """Delivers the actual decrypted legacy data block directly to the authorized beneficiary."""

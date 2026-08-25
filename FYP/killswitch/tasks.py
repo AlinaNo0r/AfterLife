@@ -35,40 +35,23 @@ def check_all_heartbeats():
                 timeout_limit = getattr(profile, 'timeout_days', 30) or 30
                 days_since_last_seen = (now - profile.last_seen).days
 
-            # days_since_last_seen = (now - profile.last_seen).days
+                # days_since_last_seen = (now - profile.last_seen).days
 
-            if days_since_last_seen <= profile.timeout_days:
-                continue
+                if days_since_last_seen <= profile.timeout_days:
+                    continue
 
-             # === STEP 1: Active → Warning ===
-            if profile.status == 'active':
-                profile.status = 'warning'
-                profile.warning_start = now
-                profile.save(update_fields=['status', 'warning_start'])
+            # === STEP 1: Active → Warning ===
+                if profile.status == 'active':
+                    profile.status = 'warning'
+                    profile.warning_start = now
+                    profile.save(update_fields=['status', 'warning_start'])
                 
-                profile.notify_nominees_warning()   # Witnesses ko email
+                    profile.notify_nominees_warning()   # Witnesses ko email
                 
-                logger.warning(f"⚠️ WARNING triggered for {profile.user.username} "
+                    logger.warning(f"⚠️ WARNING triggered for {profile.user.username} "
                              f"({days_since_last_seen} days missed)")
 
-        #     # === STEP 2: Warning → inactive ===
-        #     elif profile.status == 'warning':
-        #         days_in_warning = (now - profile.warning_start).days
-                
-        #         if days_in_warning > 7:         
-        #             profile.status = 'inactive'
-        #             profile.save(update_fields=['status'])
-                    
-        #             logger.critical(f"🚨 Inactivity detected for {profile.user.username} - Starting release Process")
-        #             profile.start_release_process()   # Assets release process shuru
-
-        # except Exception as e:
-        #     logger.error(f"Error checking killswitch for user "
-        #                 f"{getattr(profile.user, 'username', 'Unknown')}: {e}")
-
-
-        # -------------------------------------------------------------------
-                    # === STEP 2: Warning Phase Milestone Evaluation ===
+            # === STEP 2: Warning Phase Milestone Evaluation ===
             elif profile.status == 'warning':
                 if profile.warning_start:
                     days_in_warning = (now - profile.warning_start).days
@@ -102,8 +85,7 @@ def check_all_heartbeats():
                     # The status changes to 'inactive' ONLY if a nominee clicks the "Deceased Link" view button.
 
         except Exception as e:
-            logger.error(f"Error checking killswitch for user {getattr(profile.user, 'username', 'Unknown')}: {e}")
-#------------------------------------------------------------------------------------------------------------------------------------------------
+            logger.error(f"Error checking killswitch for user {getattr(profile.user, 'username', 'Unknown')}: {e}")\
 
     logger.info("✅ Daily Check Completed.")
 
