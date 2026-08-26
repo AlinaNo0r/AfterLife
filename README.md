@@ -48,5 +48,5 @@ records, and images).
 
 ### Acknowledgments
 * We express our gratitude to DEPARTMENT OF SOFTWARE ENGINEERING for providing the resources to conduct this project.
-* Special thanks to our project and appreciation to our parents.
+* Special thanks to our project supervisor and appreciation to our parents.
 * We are also incredibly thankful to our group members and to everyone who assisted, reviewed, or supported us during the technical execution and successful compilation of this project proposal.
