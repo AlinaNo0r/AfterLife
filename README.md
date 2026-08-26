@@ -17,7 +17,7 @@ This problem statement breaks down the core vulnerabilities of current systems, 
 * **Vulnerability of Unencrypted Documents**
 
 ### 🔑 Key Features:
-* **The Inactivity Tracking Switch:** Deploy an automated background loop that pings user profiles every 3–4 days and activates a 14-day grace period status if missed.
+* **The Inactivity Tracking Switch:** Deploy an automated background loop that pings user profiles every 3–4 days and activates a 7-day grace period status if missed.
 * **The Zero-Knowledge Credential Vault:** Secure account passwords and sensitive text records using browser-to-server cryptography before saving them to disk.
 * **The Secure Document Locker:** Provide a web interface supporting the safe ingestion, storage, and isolation of multi-format binary payloads (PDF certificates, financial
 records, and images).
