@@ -85,10 +85,10 @@ class Migration(migrations.Migration):
             name='user',
             field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='vault_items', to=settings.AUTH_USER_MODEL),
         ),
-        migrations.AlterField(
+       migrations.AlterField(
             model_name='vaultitem',
             name='video_file',
-            field=models.FileField(upload_to='vault_videos/', validators=[FYP_app.models.validate_video]),
+            field=models.FileField(upload_to='vault_videos/', validators=[FYP_app.models.validate_file]),
         ),
         migrations.AlterUniqueTogether(
             name='credentials',

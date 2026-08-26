@@ -33,16 +33,17 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'FYP_app',
+    'FYP',
+    'drf_spectacular',
     'killswitch',
     'rest_framework',
-    'drf_yasg',
+    'rest_framework.authtoken',  
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
 ]
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
@@ -57,7 +58,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -87,7 +88,7 @@ WSGI_APPLICATION = 'FYP.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 
-# 🔒 FORCE SQLITE FOR ARHAAN'S LOCAL CODESPACE SANDBOX TESTING
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -108,13 +109,10 @@ DATABASES = {
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
- 
 
 AUTH_USER_MODEL = 'FYP_app.User'
 
 AUTH_PASSWORD_VALIDATORS = [
-
-    
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
     },
@@ -129,16 +127,16 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+FIELD_ENCRYPTION_KEY = 'uZEz8ibM2OwTc_XUC95vcOu6ISgMA6T1qwI989hckuQ='
+SITE_URL = 'http://localhost:8000'
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -153,13 +151,13 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 # ──────────────────────────────────────────────
 # EMAIL CONFIGURATION (SMTP Settings)
 # ─────────────────────────────────────────────
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = ':smtp//gmail.com'                 # Using Gmail SMTP Server
-# EMAIL_PORT = 587                              # Standard TLS Port
-# EMAIL_USE_TLS = True                          # Secure Connection Enforced
-# EMAIL_HOST_USER = os.environ.get('EMAIL_USER', 'your-project-email@gmail.com')
-# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS', 'your-app-password')
-# DEFAULT_FROM_EMAIL = f"Afterlife Digital Legacy <{EMAIL_HOST_USER}>"
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = ':smtp//gmail.com'                 # Using Gmail SMTP Server
+EMAIL_PORT = 587                              # Standard TLS Port
+EMAIL_USE_TLS = True                          # Secure Connection Enforced
+EMAIL_HOST_USER = os.environ.get('EMAIL_USER', 'your-project-email@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS', 'your-app-password')
+DEFAULT_FROM_EMAIL = f"Afterlife Digital Legacy <{EMAIL_HOST_USER}>"
 
 
 
@@ -170,3 +168,40 @@ ENCRYPTION_KEY = b'uX6_8N_j7w290LzkPlKm1N8xQWtR-V94mYnBvC_XDh8='
 # 🔒 SECURITY UPDATE: Bulletproof console email interceptor to bypass restricted firewalls safely
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'security@afterlife.com'
+
+# ======================
+# Django REST Framework + Swagger (drf-spectacular)
+# ======================
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+     ],
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'FYP API',
+    'DESCRIPTION': 'API documentation for the FYP project',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,   
+
+
+    # Important for Token Authentication in Swagger
+    'SECURITY': [{'TokenAuth': []}],
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'TokenAuth': {
+                'type': 'apiKey',
+                'in': 'header',
+                'name': 'Authorization',
+                'description': 'Token-based authentication. Format: `Token <your_token>`'
+            }
+        }
+    },
+}

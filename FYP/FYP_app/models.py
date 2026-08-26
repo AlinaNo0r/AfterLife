@@ -13,6 +13,9 @@ import logging
 
 
 logger = logging.getLogger(__name__)
+from encrypted_model_fields.fields import EncryptedCharField
+import os, uuid
+
 
 
 # ──────────────────────────────────────────────
@@ -29,10 +32,12 @@ def only_alphabets(value):
 # Validate Video 
 # ────────────────────────────────────────────── 
 
-def validate_video(value):
-    """Accept common video file extensions only."""
+def validate_file(value):
+    """Accept common file types: video, image, document."""
     ext = os.path.splitext(value.name)[1].lower()
-    allowed = ['.mp4', '.mov', '.avi', '.mkv', '.webm']
+    allowed = ['.mp4', '.mov', '.avi', '.mkv', '.webm',   # video
+               '.jpg', '.jpeg', '.png', '.gif',            # image
+               '.pdf', '.doc', '.docx', '.txt']            # document
     if ext not in allowed:
         raise ValidationError(
             f"Unsupported file type '{ext}'. Allowed types: {', '.join(allowed)}"
@@ -99,7 +104,7 @@ class NomineeRole(models.Model):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     assigned_at = models.DateTimeField(auto_now_add=True)
     confirmed_at = models.DateTimeField(null=True, blank=True)
-
+    
     class Meta:
         unique_together = ['nominee', 'role']
 
@@ -131,14 +136,21 @@ class Credentials(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='credentials'
     )
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('locked', 'Locked'),
+            ('released', 'Released'),
+        ],
+        default='locked'
+    )
     platform = models.CharField(max_length=100)
     platform_url = models.URLField()
     username_on_platform = models.CharField(max_length=100)
     email_on_platform = models.EmailField()
-
+    is_sent = models.BooleanField(default=False)
     #   Replace with EncryptedCharField in production (see docstring above)
-    password = models.CharField(max_length=500)
-
+    password = EncryptedCharField(max_length=255)
 
     assigned_nominee = models.ForeignKey(
         Nominee, on_delete=models.PROTECT, related_name='credentials'
@@ -171,66 +183,12 @@ class UserProfile(models.Model):
         max_length=20, choices=STATUS_CHOICES, default='active'
     )
     warning_start = models.DateTimeField(null=True, blank=True)
-    timeout_days = models.IntegerField(default=30)
+    witness_confirmed = models.BooleanField(default=False)
+    witness_response_at = models.DateTimeField(null=True, blank=True)
+    witness_token = models.UUIDField(default=uuid.uuid4, editable=False)
 
     def __str__(self):
-        # return f"{self.user.username} — {self.get_status_display()}"
-        return f"Profile: {self.user.username} [{self.status}]"
-    
-    # ──────────────────────────────────────────────
-    # Killswitch Methods / NESTED SECURITY METHODS (Indented Properly)
-    # ──────────────────────────────────────────────
-
-    def notify_nominees_warning(self):
-        
-        from django.core.mail import send_mail
-        from django.conf import settings
-    
-       
-        witnesses = self.user.nominees.filter(
-        roles__role='witness'
-        ).prefetch_related('roles')
-
-        if not witnesses.exists():
-            logger.warning(f"No witnesses found for user {self.user.username}")
-            return
-
-        for nominee in witnesses:
-            try:
-                subject = f"[URGENT] {self.user.get_full_name() or self.user.username } has not checked in"
-                site_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
-                confirmation_link = f"{site_url}/api/confirm-death/{self.user.id}/"
-
-                message = f"""Dear {nominee.nominee_name},
-
-                {self.user.get_full_name() or self.user.username} has not checked in for {self.timeout_days} days.
-
-                As a designated Death Witness, we need you to confirm their status.
-
-                Please log in to Digital Vault and confirm:
-                1. If they are alive and well → This will reset the timer.
-                2. If they are unresponsive → This will trigger the next steps in the process
-                {confirmation_link}
-
-                If no action is taken within 7 days, the system will proceed automatically.
-
-                Digital Vault Death Confirmation Team
-                """
-
-                send_mail(
-                    subject=subject.strip(),
-                    message=message.strip(),
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[nominee.nominee_email],
-                    fail_silently=False,   # Error aaye to exception dikhega
-                )
-                
-                logger.info(f"Warning email sent to {nominee.nominee_name} for {self.user.username}")
-                
-            except Exception as e:
-                logger.error(f"Failed to send email to {nominee.nominee_email}: {e}")
-
-        logger.info(f"✅ Warning emails sent to {witnesses.count()} witness(es) for {self.user.username}")
+        return f"{self.user.username} — {self.get_status_display()}"
 
 
 
@@ -270,23 +228,26 @@ class UserProfile(models.Model):
 # ──────────────────────────────────────────────
 
 class VaultItem(models.Model):
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='vault_items'
-    )
+    RELEASE_TYPE_CHOICES = [
+        ('killswitch', 'Kill Switch (Inactivity)'),
+        ('scheduled', 'Specific Date'),
+        ('recurring', 'Recurring Date'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='vault_items')
     title = models.CharField(max_length=200)
-    video_file = models.FileField(
-        upload_to='vault_videos/', validators=[validate_video]
-    )
-    scheduled_date = models.DateField()
-    recipient = models.ForeignKey(
-        Nominee, on_delete=models.PROTECT, related_name='vault_items'
-    )
+    file = models.FileField(upload_to='vault_files/', validators=[validate_file])
+    recipient = models.ForeignKey(Nominee, on_delete=models.PROTECT, related_name='vault_items')
     is_sent = models.BooleanField(default=False)
+
+    release_type = models.CharField(max_length=20, choices=RELEASE_TYPE_CHOICES, default='killswitch')
+    
+    scheduled_date = models.DateField(null=True, blank=True)  
+    recurring_interval_days = models.PositiveIntegerField(null=True, blank=True)  
+    last_sent_at = models.DateField(null=True, blank=True)  
 
     def __str__(self):
         return f"{self.title} → {self.recipient.nominee_name}"
-
-
 # ──────────────────────────────────────────────
 # ChatMemory
 # ──────────────────────────────────────────────
@@ -299,6 +260,7 @@ class ChatMemory(models.Model):
     bot_response = models.TextField(blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     embedding = models.JSONField(null=True, blank=True)
+    accessible_to_nominees = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-timestamp']

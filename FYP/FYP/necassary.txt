@@ -1,0 +1,10 @@
+ DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME', 'afterlife'),
+        'USER': os.environ.get('DB_USER', 'afterlife_user'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'securepass'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
+    }
+}
