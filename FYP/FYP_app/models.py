@@ -76,6 +76,13 @@ class Nominee(models.Model):
     nominee_name = models.CharField(max_length=100, validators=[only_alphabets])
     nominee_email = models.EmailField()
     nominee_phone = models.CharField(max_length=15)
+    login_account = models.OneToOneField(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='nominee_profile'
+    )
     relationship = models.CharField(max_length=50, choices=[
         ('spouse', 'Spouse'),
         ('child', 'Child'),
@@ -104,6 +111,8 @@ class NomineeRole(models.Model):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     assigned_at = models.DateTimeField(auto_now_add=True)
     confirmed_at = models.DateTimeField(null=True, blank=True)
+    vote_token = models.UUIDField(default=uuid.uuid4, editable=False, null=True, blank=True)
+    vote = models.CharField(max_length=10, choices=[('death', 'Confirmed Death'), ('alive', 'Confirmed Alive')], null=True, blank=True)
     
     class Meta:
         unique_together = ['nominee', 'role']
@@ -174,6 +183,8 @@ class UserProfile(models.Model):
         ('active', 'Active'),
         ('warning', 'Warning'),
         ('inactive', 'Inactive'),
+        ('fallback', 'Fallback - Awaiting Nominee Confirmation'),
+
     ]
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name='profile'

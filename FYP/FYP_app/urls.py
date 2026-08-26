@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 from rest_framework.routers import DefaultRouter
-from .views import NomineeRoleViewSet, NomineeViewSet, VaultItemViewSet
+from .views import NomineeRoleViewSet, NomineeViewSet, VaultItemViewSet, set_password_view,MyReleasedAssetsView
 
 router = DefaultRouter()
 router.register('nominee-roles', NomineeRoleViewSet, basename='nominee-role')
@@ -27,6 +27,12 @@ urlpatterns = [
     
     # StayAlive
     path('api/stay-alive/', views.stay_alive, name='stay-alive'),
+
+    #Set Password
+    path('set-password/<uidb64>/<token>/', set_password_view, name='set-password'),
+
+    #Nominee gets data
+    path('my-assets/', MyReleasedAssetsView.as_view(), name='my-released-assets'),
 
 
 ]

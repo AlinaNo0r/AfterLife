@@ -3,14 +3,22 @@ from django.contrib.auth import authenticate
 from django.utils import timezone
 from django.db import transaction
 
-from rest_framework import generics, status, viewsets, permissions, mixins
+from rest_framework import generics, status, viewsets, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.authtoken.models import Token
-from rest_framework.exceptions import ValidationError, NotFound, AuthenticationFailed
+from rest_framework.exceptions import  AuthenticationFailed
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
+
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
+from django.contrib.auth import get_user_model
+
 
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
@@ -23,7 +31,8 @@ from .serializers import (
     NomineeSerializer,
     CredentialsSerializer,
     NomineeRoleSerializer,
-    VaultItemSerializer
+    VaultItemSerializer,
+    SetPasswordSerializer
 )
 
 
@@ -88,16 +97,16 @@ class LoginView(APIView):
         if not user:
             raise AuthenticationFailed("Invalid email or password")
 
-        token, _ = Token.objects.get_or_create(user=user)
-
+        refresh = RefreshToken.for_user(user)
         return Response({
-            "token": token.key,
-            "user": {
-                "id": user.id,
-                "email": user.email,
-                "full_name": user.get_full_name(),
-            }
-        }, status=status.HTTP_200_OK)
+          'access': str(refresh.access_token),
+          'refresh': str(refresh),
+           "user": {
+                           "id": user.id,
+                           "email": user.email,
+                           "full_name": user.get_full_name(),
+                       }
+           },status=status.HTTP_200_OK)
 
 # --------------------------------
 # verify registration through otp
@@ -192,17 +201,32 @@ def verify_login_otp(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
+    refresh_token = request.data.get("refresh")
+
+    if not refresh_token:
+        return Response(
+            {"error": "Refresh token is required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     try:
-        request.user.auth_token.delete()
+        token = RefreshToken(refresh_token)
+        token.blacklist()
         return Response(
             {"message": "Logged out successfully"},
             status=status.HTTP_200_OK
+        )
+    except TokenError:
+        return Response(
+            {"error": "Invalid or expired refresh token"},
+            status=status.HTTP_400_BAD_REQUEST
         )
     except Exception:
         return Response(
             {"error": "Logout failed"},
             status=status.HTTP_400_BAD_REQUEST
         )
+
 
 
 # ============================================================
@@ -280,7 +304,7 @@ class ChangePasswordView(APIView):
         user.set_password(serializer.validated_data["new_password"])
         user.save()
 
-        # Force re-login
+        
         Token.objects.filter(user=user).delete()
 
         return Response(
@@ -400,8 +424,54 @@ class VaultItemViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+############# password setter###########
 
 
+User = get_user_model()
+token_generator = PasswordResetTokenGenerator()
+
+@extend_schema(
+    request=SetPasswordSerializer,
+    responses={200: {"type": "object", "properties": {"message": {"type": "string"}}}},
+    tags=["Authentication"]
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def set_password_view(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return Response({"error": "Invalid link"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not token_generator.check_token(user, token):
+        return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = SetPasswordSerializer(data=request.data)
+    if serializer.is_valid():
+        user.set_password(serializer.validated_data['password'])
+        user.save()
+        return Response({"message": "Password set successfully"}, status=status.HTTP_200_OK)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+###### Release Assets Data####
+class MyReleasedAssetsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            nominee = Nominee.objects.get(login_account=request.user)
+        except Nominee.DoesNotExist:
+            return Response({"error": "It's not linked with any nominee"}, status=404)
+
+        vault_items = VaultItem.objects.filter(recipient=nominee, is_sent=True)
+        credentials = Credentials.objects.filter(assigned_nominee=nominee, status='released')
+
+        return Response({
+            "vault_items": VaultItemSerializer(vault_items, many=True).data,
+            "credentials": CredentialsSerializer(credentials, many=True).data,
+        })
 
 
 def home(request):

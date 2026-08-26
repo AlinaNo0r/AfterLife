@@ -12,34 +12,25 @@ scheduler_started = False
 def check_inactive_users():
     print("Running Kill Switch check...")
     now = timezone.now()
-    profiles = UserProfile.objects.filter(status='active')
 
-    for profile in profiles:
+    # Stage 1: active -> warning
+    active_profiles = UserProfile.objects.filter(status='active')
+    for profile in active_profiles:
         days_silent = (now - profile.last_seen).days
-
         if days_silent >= profile.timeout_days:
             profile.status = 'warning'
             profile.warning_start = now
             profile.save()
-            notify_nominees_warning(profile)
             print(f"User {profile.user.username} moved to WARNING status.")
 
-    # Stage 2: warning -> released 
+    # Stage 2: warning -> fallback (agar 50 din tak koi majority na bane)
     warning_profiles = UserProfile.objects.filter(status='warning')
     for profile in warning_profiles:
-        if profile.witness_confirmed:
-            profile.status = 'released'
+        days_in_warning = (now - profile.warning_start).days
+        if days_in_warning >= 120:
+            profile.status = 'fallback'
             profile.save()
-            release_assets(profile)
-            print(f"User {profile.user.username} assets RELEASED (witness confirmed).")
-        else:
-            days_in_warning = (now - profile.warning_start).days
-            if days_in_warning >= 50:
-                profile.status = 'released'
-                profile.save()
-                release_assets(profile)
-                print(f"User {profile.user.username} assets RELEASED (50-day timeout, no witness response).")            
-
+            print(f"User {profile.user.username} moved to FALLBACK — no majority reached.")
 
 def start_scheduler():
     global scheduler_started
@@ -50,13 +41,13 @@ def start_scheduler():
         return
 
     scheduler = BackgroundScheduler()
-    scheduler.add_job(check_inactive_users, 'interval', days=1)
+    # scheduler.add_job(check_inactive_users, 'interval', days=1)
     # scheduler.add_job(check_scheduled_releases, 'interval', days=1)  
     scheduler.add_job(check_scheduled_releases, 'interval', minutes=1)  
 
     
     
-    # scheduler.add_job(check_inactive_users, 'interval', minutes=1)
+    scheduler.add_job(check_inactive_users, 'interval', minutes=1)
 
     scheduler.start()
     scheduler_started = True

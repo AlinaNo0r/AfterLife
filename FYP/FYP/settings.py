@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-hifa!xne7i4l$rhk-7dhfn$f40xhtiq)*qj67myi2((436+423
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
+FRONTEND_URL = "http://localhost:3000"   
 
 # Application definition
 
@@ -43,8 +43,11 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'rest_framework_simplejwt.token_blacklist',
+
     'django.contrib.staticfiles',
 ]
+<<<<<<< HEAD
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -53,6 +56,10 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
 }
+=======
+
+
+>>>>>>> bb187cd (local changes)
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -138,36 +145,29 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
+###########  AUTH TOKEN CONFIG  ################
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
-
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-
-# ──────────────────────────────────────────────
-# EMAIL CONFIGURATION (SMTP Settings)
-# ─────────────────────────────────────────────
+#Email
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = ':smtp//gmail.com'                 # Using Gmail SMTP Server
-EMAIL_PORT = 587                              # Standard TLS Port
-EMAIL_USE_TLS = True                          # Secure Connection Enforced
-EMAIL_HOST_USER = os.environ.get('EMAIL_USER', 'your-project-email@gmail.com')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS', 'your-app-password')
-DEFAULT_FROM_EMAIL = f"Afterlife Digital Legacy <{EMAIL_HOST_USER}>"
-
-
-
-
-# 🔒 SECURITY UPDATE: Master Key used to symmetrically encrypt and decrypt user passwords
-ENCRYPTION_KEY = b'uX6_8N_j7w290LzkPlKm1N8xQWtR-V94mYnBvC_XDh8='
-
-# 🔒 SECURITY UPDATE: Bulletproof console email interceptor to bypass restricted firewalls safely
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'security@afterlife.com'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'digitalvault.fyp@gmail.com'
+EMAIL_HOST_PASSWORD = 'nuut ahss dien ikgz'
+DEFAULT_FROM_EMAIL = 'digitalvault.fyp@gmail.com'
 
 # ======================
 # Django REST Framework + Swagger (drf-spectacular)
@@ -176,7 +176,7 @@ DEFAULT_FROM_EMAIL = 'security@afterlife.com'
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
