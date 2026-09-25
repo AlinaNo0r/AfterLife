@@ -1,7 +1,9 @@
 from django.shortcuts import render
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, login
 from django.utils import timezone
 from django.db import transaction
+from django.views.decorators.csrf import csrf_exempt
+import random
 
 from rest_framework import generics, status, viewsets, permissions
 from rest_framework.views import APIView
@@ -9,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.authtoken.models import Token
-from rest_framework.exceptions import  AuthenticationFailed
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
@@ -19,10 +21,17 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from django.contrib.auth import get_user_model
 
-
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
-from .models import User, UserProfile, Nominee, Credentials, NomineeRole, VaultItem
+from .models import (
+    User,
+    UserProfile,
+    Nominee,
+    Credentials,
+    NomineeRole,
+    VaultItem,
+    EmailOTP,
+)
 from .serializers import (
     RegisterSerializer,
     LoginSerializer,
@@ -32,8 +41,15 @@ from .serializers import (
     CredentialsSerializer,
     NomineeRoleSerializer,
     VaultItemSerializer,
-    SetPasswordSerializer
+    SetPasswordSerializer,
 )
+
+
+try:
+    from .emails import send_otp_email
+except ImportError:
+    def send_otp_email(email, otp, purpose):
+        print(f"[DEV] OTP for {email} ({purpose}): {otp}")
 
 
 # ============================================================
@@ -128,7 +144,7 @@ def verify_registration_otp(request):
 
             user.is_active = True
             user.save()
-            return Respose({'Message': 'Profile activation successful! You can now log in.'}, status=status.HTTPS_200_OK)
+            return Response({'Message': 'Profile activation successful! You can now log in.'}, status=status.HTTP_200_OK)
     
     except(User.DoesNotExist, EmailOTP.DoesNotExist):
         return Response({'error': 'Invalid or expired activation passcode'}, status=status.HTTP_400_BAD_REQUEST)

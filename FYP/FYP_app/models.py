@@ -6,9 +6,7 @@ from django.conf import settings
 from cryptography.fernet import Fernet
 import os
 import logging
-
-# For encryption and make the master key...
-# from encrypted_model_fields.fields import EncryptedCharField  
+ 
 # To uncomment this we have to write this code line (password = EncryptedCharField(max_length=255)) in Credential Class at line numner 133
 
 
@@ -158,7 +156,6 @@ class Credentials(models.Model):
     username_on_platform = models.CharField(max_length=100)
     email_on_platform = models.EmailField()
     is_sent = models.BooleanField(default=False)
-    #   Replace with EncryptedCharField in production (see docstring above)
     password = EncryptedCharField(max_length=255)
 
     assigned_nominee = models.ForeignKey(
@@ -175,7 +172,7 @@ class Credentials(models.Model):
 
 
 # ──────────────────────────────────────────────
-# USER PROFILE & HEARTBEAT SWITCH TRACKER
+# USER PROFILE 
 # ──────────────────────────────────────────────
 
 class UserProfile(models.Model):
@@ -184,7 +181,7 @@ class UserProfile(models.Model):
         ('warning', 'Warning'),
         ('inactive', 'Inactive'),
         ('fallback', 'Fallback - Awaiting Nominee Confirmation'),
-
+        ('released', 'Released'),
     ]
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name='profile'
@@ -198,42 +195,23 @@ class UserProfile(models.Model):
     witness_response_at = models.DateTimeField(null=True, blank=True)
     witness_token = models.UUIDField(default=uuid.uuid4, editable=False)
 
+    # killswitch fields 
+    timeout_days = models.PositiveIntegerField(
+        default=7,
+        help_text="Days of inactivity before warning triggers"
+    )
+    released_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When assets were released"
+    )
+
     def __str__(self):
         return f"{self.user.username} — {self.get_status_display()}"
 
 
 
-
-        # 🔒 SECURITY UPDATE: Coded the completely missing data-release method!
-    def start_release_process(self):
-        """
-        Loops through all user credentials, decrypts vault passwords, and alerts beneficiaries safely.
-        """
-        from .emails import send_confirmation_request_to_nominee 
         
-        crypto_engine = Fernet(settings.ENCRYPTION_KEY)
-        user_credentials = self.user.credentials.select_related('assigned_nominee')
-        notified_emails = set()
-
-        for cred in user_credentials:
-            nominee = cred.assigned_nominee
-            
-            if nominee and nominee.nominee_email not in notified_emails:
-                try:
-                    # Decrypt the encrypted password block from the database row
-                    decrypted_bytes = crypto_engine.decrypt(cred.password.encode('utf-8'))
-                    cleartext_password = decrypted_bytes.decode('utf-8')
-                except Exception:
-                    cleartext_password = "[Vault Decryption Failure]"
-
-                # Fire off the secure confirmation inheritance mail
-                send_confirmation_request_to_nominee(
-                    nominee_email=nominee.nominee_email,
-                    nominee_name=nominee.nominee_name,
-                    owner_name=self.user.get_full_name() or self.user.username
-                )
-                notified_emails.add(nominee.nominee_email)
-
 # ──────────────────────────────────────────────
 # VaultItem
 # ──────────────────────────────────────────────
