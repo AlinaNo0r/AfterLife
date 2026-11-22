@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login
 from django.utils import timezone
 from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
-import random
+import secrets
 
 from rest_framework import generics, status, viewsets, permissions
 from rest_framework.views import APIView
@@ -20,6 +20,7 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from django.contrib.auth import get_user_model
+from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
 
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
@@ -34,6 +35,7 @@ from .models import (
 )
 from .serializers import (
     RegisterSerializer,
+    OnboardingSerializer,
     LoginSerializer,
     UserSerializer,
     ChangePasswordSerializer,
@@ -46,10 +48,14 @@ from .serializers import (
 
 
 try:
-    from .emails import send_otp_email
+    from .emails import send_otp_email, send_nominee_invitation_email
 except ImportError:
     def send_otp_email(email, otp, purpose):
         print(f"[DEV] OTP for {email} ({purpose}): {otp}")
+    def send_nominee_invitation_email(email, nominee_name, owner_name, nominee_id):
+        print(f"[DEV] Nominee invitation for {nominee_name} at {email}")
+
+nominee_signer = TimestampSigner()
 
 
 # ============================================================
@@ -72,10 +78,26 @@ def register_view(request):
     try:
         with transaction.atomic():
             user = serializer.save()
-            UserProfile.objects.create(user=user)
+            UserProfile.objects.get_or_create(user=user)
+            otp = EmailOTP.objects.create(
+                user=user,
+                otp_code=f'{secrets.randbelow(1_000_000):06d}',
+                purpose='register',
+            )
+
+        if not send_otp_email(user.email, otp.otp_code, 'register'):
+            return Response(
+                {
+                    'error': 'Account created, but the verification email could not be sent. Request a new code.',
+                    'email': user.email,
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
         return Response({
-            "message": "Account created successfully",
+            "message": "Account created. Check your email for the verification code.",
+            "verification_required": True,
+            "email": user.email,
             "user": {
                 "id": user.id,
                 "email": user.email,
@@ -100,7 +122,7 @@ class LoginView(APIView):
         responses={200: dict},
         tags=["Authentication"]
     )
-    
+
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -113,16 +135,22 @@ class LoginView(APIView):
         if not user:
             raise AuthenticationFailed("Invalid email or password")
 
+        if not getattr(user, 'is_active', False):
+            raise AuthenticationFailed("Please verify your email before logging in.")
+
         refresh = RefreshToken.for_user(user)
+        profile = getattr(user, 'profile', None)
+
         return Response({
-          'access': str(refresh.access_token),
-          'refresh': str(refresh),
-           "user": {
-                           "id": user.id,
-                           "email": user.email,
-                           "full_name": user.get_full_name(),
-                       }
-           },status=status.HTTP_200_OK)
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'onboarding_completed': getattr(profile, 'onboarding_completed', False),
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'full_name': user.get_full_name(),
+            },
+        }, status=status.HTTP_200_OK)
 
 # --------------------------------
 # verify registration through otp
@@ -134,20 +162,79 @@ def verify_registration_otp(request):
     email = request.data.get('email')
     otp_input = request.data.get('otp')
 
+    if not email or not otp_input:
+        return Response(
+            {'error': 'Email and verification code are required.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     try:
         user = User.objects.get(email=email)
         otp_entry = EmailOTP.objects.filter(user=user, purpose='register').latest('created_at')
 
-        if otp_entry.is_valid() and otp_entry.otp_code == otp_input:
-            otp_entry.is_used = True
-            otp_entry.save()
+        if not otp_entry.is_valid() or otp_entry.otp_code != otp_input:
+            return Response(
+                {'error': 'Invalid or expired verification code.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
+        with transaction.atomic():
+            otp_entry.is_used = True
+            otp_entry.save(update_fields=['is_used'])
             user.is_active = True
-            user.save()
-            return Response({'Message': 'Profile activation successful! You can now log in.'}, status=status.HTTP_200_OK)
-    
-    except(User.DoesNotExist, EmailOTP.DoesNotExist):
-        return Response({'error': 'Invalid or expired activation passcode'}, status=status.HTTP_400_BAD_REQUEST)
+            user.save(update_fields=['is_active'])
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'message': 'Email verified successfully.',
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'onboarding_completed': profile.onboarding_completed,
+        }, status=status.HTTP_200_OK)
+    except (User.DoesNotExist, EmailOTP.DoesNotExist):
+        return Response(
+            {'error': 'Invalid or expired verification code.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def resend_registration_otp(request):
+    email = request.data.get('email')
+    if not email:
+        return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.filter(email=email, is_active=False).first()
+    if not user:
+        return Response(
+            {'message': 'If an unverified account exists for this email, a new code has been sent.'},
+            status=status.HTTP_200_OK,
+        )
+
+    recent_otp = EmailOTP.objects.filter(user=user, purpose='register').order_by('-created_at').first()
+    if recent_otp and (timezone.now() - recent_otp.created_at).total_seconds() < 60:
+        return Response(
+            {'error': 'Please wait before requesting a new verification code.'},
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
+    otp = EmailOTP.objects.create(
+        user=user,
+        otp_code=f'{secrets.randbelow(1_000_000):06d}',
+        purpose='register',
+    )
+    if not send_otp_email(user.email, otp.otp_code, 'register'):
+        return Response(
+            {'error': 'Could not send the verification email. Please try again.'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    return Response(
+        {'message': 'A new verification code has been sent to your email.'},
+        status=status.HTTP_200_OK,
+    )
 
 
 # ----------------
@@ -166,7 +253,7 @@ def login_view(request):
 
     if user is not None:
         # Generate a fresh time-sensitive login verification passcode
-        otp_string = str(random.randint(100000, 999999))
+        otp_string = f'{secrets.randbelow(1_000_000):06d}'
         EmailOTP.objects.create(user=user, otp_code=otp_string, purpose='login')
         send_otp_email(user.email, otp_string, 'login')
 
@@ -255,6 +342,25 @@ class UserDetailView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def complete_onboarding(request):
+    serializer = OnboardingSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    if 'timeout_days' in serializer.validated_data:
+        profile.timeout_days = serializer.validated_data['timeout_days']
+    profile.onboarding_completed = serializer.validated_data['onboarding_completed']
+    profile.save(update_fields=['timeout_days', 'onboarding_completed'])
+
+    return Response({
+        'message': 'Onboarding saved successfully.',
+        'timeout_days': profile.timeout_days,
+        'onboarding_completed': profile.onboarding_completed,
+    }, status=status.HTTP_200_OK)
 
 
 @extend_schema(
@@ -391,6 +497,45 @@ class NomineeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Nominee.objects.filter(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        nominee = serializer.save()
+        invitation_sent = send_nominee_invitation_email(
+            nominee.nominee_email,
+            nominee.nominee_name,
+            request.user.get_full_name() or request.user.email,
+            nominee.id,
+        )
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {**serializer.data, 'invitation_sent': invitation_sent},
+            status=status.HTTP_201_CREATED,
+            headers=headers,
+        )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def confirm_nominee(request, token):
+    try:
+        raw_value = nominee_signer.unsign(token, max_age=7 * 24 * 60 * 60)
+        nominee_id, nominee_email = raw_value.split(':', 1)
+    except (BadSignature, SignatureExpired, ValueError):
+        return Response({'error': 'This confirmation link is invalid or expired.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    nominee = Nominee.objects.filter(id=nominee_id, nominee_email=nominee_email).first()
+    if not nominee:
+        return Response({'error': 'This nominee invitation could not be found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    NomineeRole.objects.filter(nominee=nominee).update(confirmed_at=timezone.now())
+
+    return Response({
+        'message': f'Thank you, {nominee.nominee_name}. Your confirmation has been recorded.',
+        'nominee_name': nominee.nominee_name,
+        'nominee_email': nominee.nominee_email,
+    }, status=status.HTTP_200_OK)
 
 
 class NomineeRoleViewSet(viewsets.ReadOnlyModelViewSet):

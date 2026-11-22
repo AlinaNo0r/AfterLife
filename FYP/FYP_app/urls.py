@@ -12,8 +12,12 @@ router.register('vault-items', VaultItemViewSet, basename='vault-item')
 urlpatterns = [
     # Auth
     path('api/register/', views.register_view, name='register'),
+    path('api/register/verify/', views.verify_registration_otp, name='verify-registration'),
+    path('api/register/resend-code/', views.resend_registration_otp, name='resend-registration-code'),
+    path('api/nominee/confirm/<str:token>/', views.confirm_nominee, name='confirm-nominee'),
     path('api/login/', views.LoginView.as_view(), name='login'),
     path('api/logout/', views.logout_view, name='logout'),
+    path('api/onboarding/complete/', views.complete_onboarding, name='complete-onboarding'),
     
     # User
     path('api/user/', views.UserDetailView.as_view(), name='user-detail'),

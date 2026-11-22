@@ -1,3 +1,5 @@
+import re
+
 from rest_framework import serializers
 from django.contrib.auth import password_validation
 from django.contrib.auth import get_user_model
@@ -11,16 +13,24 @@ User = get_user_model()
 class NomineeSerializer(serializers.ModelSerializer):
     roles = serializers.MultipleChoiceField(
         choices=[('witness', 'Death Witness'), ('beneficiary', 'Beneficiary')],
-        write_only=True
+        write_only=True,
+        required=False,
+        default=['witness'],
     )
 
     class Meta:
         model = Nominee
         fields = ['id', 'nominee_name', 'nominee_email', 'nominee_phone', 'relationship', 'user', 'roles']
         read_only_fields = ['user']
+        extra_kwargs = {
+            'nominee_phone': {'required': False, 'allow_blank': True},
+            'relationship': {'required': False},
+        }
 
     def create(self, validated_data):
-        roles_data = validated_data.pop('roles')
+        roles_data = validated_data.pop('roles', ['witness'])
+        validated_data.setdefault('nominee_phone', '')
+        validated_data.setdefault('relationship', 'other')
         validated_data['user'] = self.context['request'].user
         nominee_email = validated_data.get('nominee_email')
         nominee_name = validated_data.get('nominee_name')
@@ -87,18 +97,44 @@ class CredentialsSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    onboarding_completed = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'dob', 'gender', 'phone']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'dob', 'gender', 'phone', 'onboarding_completed']
+
+    def get_onboarding_completed(self, user):
+        profile = getattr(user, 'profile', None)
+        return profile.onboarding_completed if profile else False
 
 
 class RegisterSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=150)
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8)
-    phone = serializers.CharField(max_length=15)
+    phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
     gender = serializers.ChoiceField(choices=['Male', 'Female', 'Other'])
     dob = serializers.DateField(required=False, allow_null=True)
+
+    def validate_password(self, value):
+        requirements = (
+            (r'[A-Z]', 'one uppercase letter'),
+            (r'\d', 'one number'),
+            (r'[^A-Za-z0-9]', 'one special character'),
+        )
+        missing = [description for pattern, description in requirements if not re.search(pattern, value)]
+        if missing:
+            raise serializers.ValidationError(
+                'Password must include ' + ', '.join(missing) + '.'
+            )
+        password_validation.validate_password(value)
+        return value
+
+    def validate_phone(self, value):
+        cleaned_value = re.sub(r'[\s()-]', '', value or '')
+        if value and not re.fullmatch(r'\+?[1-9]\d{6,14}', cleaned_value):
+            raise serializers.ValidationError('Enter a valid phone number with country code, for example +923001234567.')
+        return value
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
@@ -117,11 +153,17 @@ class RegisterSerializer(serializers.Serializer):
             password=validated_data['password'],
             first_name=first_name,
             last_name=last_name,
-            phone=validated_data.get('phone'),
+            phone=validated_data.get('phone', ''),
             gender=validated_data.get('gender'),
             dob=validated_data.get('dob'),
+            is_active=False,
         )
         return user
+
+
+class OnboardingSerializer(serializers.Serializer):
+    timeout_days = serializers.IntegerField(min_value=1, max_value=365, required=False)
+    onboarding_completed = serializers.BooleanField(default=True)
 
 
 class ChangePasswordSerializer(serializers.Serializer):

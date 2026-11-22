@@ -12,12 +12,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # .env ko project folder se load karo (manage.py wala folder)
 load_dotenv(BASE_DIR / '.env')
 
-SECRET_KEY = 'django-insecure-hifa!xne7i4l$rhk-7dhfn$f40xhtiq)*qj67myi2((436+423'
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-hifa!xne7i4l$rhk-7dhfn$f40xhtiq)*qj67myi2((436+423'
+)
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('1', 'true', 'yes', 'on')
 
-ALLOWED_HOSTS = []
-FRONTEND_URL = "http://localhost:3000"
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'testserver', '[::1]']
+FRONTEND_URL = 'http://localhost:5173'
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
 
 INSTALLED_APPS = [
     'FYP_app',
@@ -83,7 +92,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-FIELD_ENCRYPTION_KEY = os.environ['FIELD_ENCRYPTION_KEY']
+FIELD_ENCRYPTION_KEY = os.environ.get('FIELD_ENCRYPTION_KEY', '')
 SITE_URL = 'http://localhost:8000'
 
 LANGUAGE_CODE = 'en-us'
@@ -106,8 +115,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ['EMAIL_HOST_USER']
-EMAIL_HOST_PASSWORD = os.environ['EMAIL_HOST_PASSWORD']
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'digitalvault.fyp@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 
 REST_FRAMEWORK = {

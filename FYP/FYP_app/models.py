@@ -200,6 +200,7 @@ class UserProfile(models.Model):
         default=7,
         help_text="Days of inactivity before warning triggers"
     )
+    onboarding_completed = models.BooleanField(default=False)
     released_at = models.DateTimeField(
         null=True,
         blank=True,

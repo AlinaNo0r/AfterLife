@@ -1,8 +1,10 @@
 from django.core.mail import send_mail
 from django.conf import settings
+from django.core.signing import TimestampSigner
 import logging
 
 logger = logging.getLogger(__name__)
+nominee_signer = TimestampSigner()
 
 # ──────────────────────────────────────────────
 # 1. TWO-FACTOR SECURITY VERIFICATION (OTP)
@@ -36,6 +38,30 @@ def send_otp_email(user_email, otp_code, execution_purpose):
 
     except Exception as e:
         logger.error(f"Failed to log security OTP email payload: {e}")
+        return False
+
+
+def build_nominee_confirmation_url(nominee_id, nominee_email):
+    token = nominee_signer.sign(f"{nominee_id}:{nominee_email}")
+    return f"{settings.SITE_URL}/api/nominee/confirm/{token}/"
+
+
+def send_nominee_invitation_email(nominee_email, nominee_name, owner_name, nominee_id):
+    confirmation_url = build_nominee_confirmation_url(nominee_id, nominee_email)
+    subject = f"Confirm your role in {owner_name}'s Digital Vault"
+    message = (
+        f"Hello {nominee_name},\n\n"
+        f"{owner_name} has invited you to join their trusted circle in Digital Vault. "
+        "Please confirm whether you would like to be a nominee and receive access under their chosen conditions.\n\n"
+        f"Confirm here: {confirmation_url}\n\n"
+        "Regards,\nDigital Vault Team"
+    )
+
+    try:
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [nominee_email], fail_silently=False)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send nominee invitation: {e}")
         return False
 
 

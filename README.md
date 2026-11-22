@@ -26,10 +26,30 @@ records, and images).
 * **The Consensus Verification Ring:** Enforce a double-verification rule requiring confirmation from both independent contacts before changing account state flags.
 
 ### 🛠️ Technologies Used:
-* **Frontend:** HTML, CSS, JAvascript, Bootstrape, Tailwind CSS,
-* **Backend:** Python, DRM, Django Framework
+* **Frontend:** HTML, CSS, JAvascript, React
+* **Backend:** Python, Django Framework, AP scheduler
 * **Database:** PostgreSQL 
 * **Cryptography:** Fernet cryptography and APschedular
+
+## Run locally
+
+The React frontend and Django API run in separate terminals. Start PostgreSQL first and make sure the database settings in `FYP/.env` are correct.
+
+1. From the project root, start the Django API:
+
+   ```powershell
+   .\.venv\Scripts\python.exe .\FYP\manage.py migrate
+   .\.venv\Scripts\python.exe .\FYP\manage.py runserver 127.0.0.1:8000
+   ```
+
+2. In a second terminal, start the frontend:
+
+   ```powershell
+   Set-Location .\frontend
+   npm run dev
+   ```
+
+3. Open the frontend URL shown by Vite (usually `http://localhost:5173`). Its development proxy forwards API requests to Django on port 8000.
 
 ###  ⚙  Development Baseline
 * **Processor Engine (CPU):** Minimum 2.0 GHz Quad-core processor (intel core i5, AMD ryzen 5)
