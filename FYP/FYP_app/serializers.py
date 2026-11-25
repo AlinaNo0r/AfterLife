@@ -1,11 +1,19 @@
 import re
+import uuid
 
 from rest_framework import serializers
 from django.contrib.auth import password_validation
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
-from .models import Credentials, Nominee, NomineeRole, VaultItem, UserProfile
+from django.db import transaction
+from .models import (
+    Credentials,
+    LegacyAIAccess,
+    Nominee,
+    NomineeRole,
+    VaultItem,
+    UserProfile,
+)
 
 User = get_user_model()
 
@@ -17,49 +25,139 @@ class NomineeSerializer(serializers.ModelSerializer):
         required=False,
         default=['witness'],
     )
+    role_statuses = serializers.SerializerMethodField()
 
     class Meta:
         model = Nominee
-        fields = ['id', 'nominee_name', 'nominee_email', 'nominee_phone', 'relationship', 'user', 'roles']
+        fields = [
+            'id',
+            'nominee_name',
+            'nominee_email',
+            'nominee_phone',
+            'relationship',
+            'user',
+            'roles',
+            'role_statuses',
+        ]
         read_only_fields = ['user']
         extra_kwargs = {
             'nominee_phone': {'required': False, 'allow_blank': True},
             'relationship': {'required': False},
         }
 
+    def get_role_statuses(self, nominee):
+        return [
+            {
+                'id': role.id,
+                'role': role.role,
+                'consent_status': role.consent_status,
+                'invitation_sent_at': role.invitation_sent_at,
+                'confirmed_at': role.confirmed_at,
+            }
+            for role in nominee.roles.order_by('role')
+        ]
+
+    def validate(self, attrs):
+        roles = attrs.get('roles')
+        instance = self.instance
+        if roles is not None and not roles:
+            raise serializers.ValidationError(
+                {'roles': 'Select at least one role for this contact.'}
+            )
+        if (
+            instance is not None
+            and 'nominee_email' in attrs
+            and attrs['nominee_email'].casefold() != instance.nominee_email.casefold()
+        ):
+            raise serializers.ValidationError({
+                'nominee_email': (
+                    'A contact email cannot be changed after creation. Remove and re-add '
+                    'the contact; reassign any assets first.'
+                )
+            })
+        if roles is None or instance is None:
+            return attrs
+
+        profile = UserProfile.objects.filter(user=instance.user).first()
+        if profile and profile.status != 'active':
+            raise serializers.ValidationError(
+                {'roles': 'Roles cannot be changed while release verification is active.'}
+            )
+
+        removed_roles = set(instance.roles.values_list('role', flat=True)) - set(roles)
+        if 'beneficiary' in removed_roles:
+            if (
+                instance.credentials.exists()
+                or instance.vault_items.exists()
+                or instance.legacy_ai_access.exists()
+            ):
+                raise serializers.ValidationError({
+                    'roles': (
+                        'Reassign this contact’s credentials, capsules, and Legacy AI access '
+                        'before removing the beneficiary role.'
+                    )
+                })
+        return attrs
+
     def create(self, validated_data):
         roles_data = validated_data.pop('roles', ['witness'])
         validated_data.setdefault('nominee_phone', '')
         validated_data.setdefault('relationship', 'other')
         validated_data['user'] = self.context['request'].user
-        nominee_email = validated_data.get('nominee_email')
-        nominee_name = validated_data.get('nominee_name')
-        nominee = Nominee.objects.create(**validated_data)
-
-        if 'beneficiary' in roles_data:
-            try:
-                if not User.objects.filter(email=nominee_email).exists():
-                    login_user = User.objects.create_user(
-                        username=nominee_email,
-                        email=nominee_email,
-                        first_name=nominee_name,
-                    )
-                    login_user.set_unusable_password()
-                    login_user.save()
-
-                    nominee.login_account = login_user
-                    nominee.save()
-                else:
-                    existing_user = User.objects.get(email=nominee_email)
-                    nominee.login_account = existing_user
-                    nominee.save()
-            except IntegrityError:
-                pass
-
-        for role in roles_data:
-            NomineeRole.objects.create(nominee=nominee, role=role)
-
+        with transaction.atomic():
+            nominee = Nominee.objects.create(**validated_data)
+            for role in roles_data:
+                NomineeRole.objects.create(nominee=nominee, role=role)
+            if 'beneficiary' in roles_data:
+                self._link_login_account(nominee)
         return nominee
+
+    def update(self, instance, validated_data):
+        roles_data = validated_data.pop('roles', None)
+        with transaction.atomic():
+            instance = super().update(instance, validated_data)
+            if roles_data is not None:
+                existing_roles = {
+                    role.role: role for role in instance.roles.all()
+                }
+                for role_name in roles_data:
+                    if role_name in existing_roles:
+                        role = existing_roles[role_name]
+                        if role.consent_status == 'declined':
+                            role.consent_status = 'pending'
+                            role.confirmed_at = None
+                            role.invitation_sent_at = None
+                            role.invitation_token = uuid.uuid4()
+                            role.save(update_fields=[
+                                'consent_status',
+                                'confirmed_at',
+                                'invitation_sent_at',
+                                'invitation_token',
+                            ])
+                        continue
+                    NomineeRole.objects.create(nominee=instance, role=role_name)
+                for role_name, role in existing_roles.items():
+                    if role_name not in roles_data:
+                        role.delete()
+                if 'beneficiary' in roles_data:
+                    self._link_login_account(instance)
+        return instance
+
+    @staticmethod
+    def _link_login_account(nominee):
+        if nominee.login_account_id:
+            return
+        login_user = User.objects.filter(email__iexact=nominee.nominee_email).first()
+        if login_user is None:
+            login_user = User.objects.create_user(
+                username=nominee.nominee_email,
+                email=nominee.nominee_email,
+                first_name=nominee.nominee_name,
+            )
+            login_user.set_unusable_password()
+            login_user.save()
+        nominee.login_account = login_user
+        nominee.save(update_fields=['login_account'])
 
 
 
@@ -69,7 +167,39 @@ class NomineeRoleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = NomineeRole
-        fields = ['id', 'role', 'nominee_name', 'nominee']
+        fields = [
+            'id',
+            'role',
+            'nominee_name',
+            'nominee',
+            'consent_status',
+            'confirmed_at',
+            'vote',
+            'voted_at',
+        ]
+
+
+class LegacyAIAccessSerializer(serializers.ModelSerializer):
+    nominee_name = serializers.CharField(source='nominee.nominee_name', read_only=True)
+    nominee_email = serializers.EmailField(source='nominee.nominee_email', read_only=True)
+
+    class Meta:
+        model = LegacyAIAccess
+        fields = ['id', 'nominee', 'nominee_name', 'nominee_email', 'assigned_at']
+        read_only_fields = ['assigned_at']
+
+    def validate_nominee(self, nominee):
+        if nominee.user_id != self.context['request'].user.id:
+            raise serializers.ValidationError('Choose a contact from your Trusted Circle.')
+        role = nominee.roles.filter(
+            role='beneficiary',
+            consent_status='accepted',
+        ).first()
+        if role is None:
+            raise serializers.ValidationError(
+                'Only contacts who accepted the beneficiary role can be assigned.'
+            )
+        return nominee
 
 
 class CredentialsSerializer(serializers.ModelSerializer):
@@ -95,6 +225,26 @@ class CredentialsSerializer(serializers.ModelSerializer):
         ]
         extra_kwargs = {'password': {'write_only': True}}
 
+    def validate(self, attrs):
+        nominee = attrs.get('assigned_nominee')
+        if nominee is None and self.instance:
+            nominee = self.instance.assigned_nominee
+        if nominee is None:
+            raise serializers.ValidationError(
+                {'assigned_nominee_id': 'Choose a beneficiary for this credential.'}
+            )
+        if nominee.user_id != self.context['request'].user.id:
+            raise serializers.ValidationError(
+                {'assigned_nominee_id': 'Choose a contact from your Trusted Circle.'}
+            )
+        if not nominee.roles.filter(
+            role='beneficiary',
+            consent_status='accepted',
+        ).exists():
+            raise serializers.ValidationError(
+                {'assigned_nominee_id': 'The contact must accept the beneficiary role first.'}
+            )
+        return attrs
 
 class UserSerializer(serializers.ModelSerializer):
     onboarding_completed = serializers.SerializerMethodField()
@@ -166,6 +316,25 @@ class OnboardingSerializer(serializers.Serializer):
     onboarding_completed = serializers.BooleanField(default=True)
 
 
+class TrustedCircleSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ['witness_quorum']
+        extra_kwargs = {
+            'witness_quorum': {
+                'min_value': 2,
+                'max_value': 20,
+            }
+        }
+
+    def validate_witness_quorum(self, value):
+        if self.instance and self.instance.status != 'active':
+            raise serializers.ValidationError(
+                'The witness quorum is frozen while release verification is active.'
+            )
+        return value
+
+
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True, write_only=True)
     new_password = serializers.CharField(required=True, write_only=True)
@@ -194,7 +363,7 @@ class LoginSerializer(serializers.Serializer):
 
 
 class VaultItemSerializer(serializers.ModelSerializer):
-    file = serializers.FileField()
+    file = serializers.FileField(write_only=True)
 
     class Meta:
         model = VaultItem
@@ -205,7 +374,24 @@ class VaultItemSerializer(serializers.ModelSerializer):
         read_only_fields = ['is_sent', 'last_sent_at']
 
     def validate(self, data):
+        recipient = data.get('recipient', getattr(self.instance, 'recipient', None))
+        if recipient is None:
+            raise serializers.ValidationError({'recipient': 'Choose a beneficiary.'})
+        if recipient.user_id != self.context['request'].user.id:
+            raise serializers.ValidationError(
+                {'recipient': 'Choose a contact from your Trusted Circle.'}
+            )
+        if not recipient.roles.filter(
+            role='beneficiary',
+            consent_status='accepted',
+        ).exists():
+            raise serializers.ValidationError(
+                {'recipient': 'The contact must accept the beneficiary role first.'}
+            )
+
         release_type = data.get('release_type')
+        if release_type is None and self.instance:
+            release_type = self.instance.release_type
 
         if release_type == 'scheduled' and not data.get('scheduled_date'):
             raise serializers.ValidationError(

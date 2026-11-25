@@ -1,3 +1,4 @@
+from django.http import FileResponse
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 from django.utils import timezone
@@ -9,9 +10,9 @@ from rest_framework import generics, status, viewsets, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.authtoken.models import Token
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
@@ -21,6 +22,8 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from django.contrib.auth import get_user_model
 from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
+import mimetypes
+import uuid
 
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
@@ -30,6 +33,7 @@ from .models import (
     Nominee,
     Credentials,
     NomineeRole,
+    LegacyAIAccess,
     VaultItem,
     EmailOTP,
 )
@@ -42,20 +46,23 @@ from .serializers import (
     NomineeSerializer,
     CredentialsSerializer,
     NomineeRoleSerializer,
+    LegacyAIAccessSerializer,
+    TrustedCircleSettingsSerializer,
     VaultItemSerializer,
     SetPasswordSerializer,
 )
-
-
-try:
-    from .emails import send_otp_email, send_nominee_invitation_email
-except ImportError:
-    def send_otp_email(email, otp, purpose):
-        print(f"[DEV] OTP for {email} ({purpose}): {otp}")
-    def send_nominee_invitation_email(email, nominee_name, owner_name, nominee_id):
-        print(f"[DEV] Nominee invitation for {nominee_name} at {email}")
+from .emails import send_otp_email
+from .services import send_pending_role_invitations
 
 nominee_signer = TimestampSigner()
+
+
+def _require_active_legacy_plan(user):
+    profile = UserProfile.objects.filter(user=user).first()
+    if profile and profile.status != 'active':
+        raise PermissionDenied(
+            'Legacy assignments are frozen while release verification is active or complete.'
+        )
 
 
 # ============================================================
@@ -461,27 +468,45 @@ def delete_user(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def stay_alive(request):
-   try:
-    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    with transaction.atomic():
+        profile, _ = UserProfile.objects.select_for_update().get_or_create(
+            user=request.user,
+        )
+        if profile.status == 'released':
+            return Response(
+                {'error': 'Your legacy has already been released and cannot be relocked.'},
+                status=status.HTTP_409_CONFLICT,
+            )
 
-    profile.last_seen = timezone.now()
-    profile.status = 'active'
-    profile.warning_start = None
-    profile.released_at = None
-    profile.save()
-    
+        profile.last_seen = timezone.now()
+        profile.status = 'active'
+        profile.warning_start = None
+        profile.release_quorum_snapshot = None
+        profile.save(update_fields=[
+            'last_seen',
+            'status',
+            'warning_start',
+            'release_quorum_snapshot',
+        ])
+        witness_roles = NomineeRole.objects.filter(
+            nominee__user=request.user,
+            role='witness',
+        )
+        witness_roles.update(
+            vote=None,
+            voted_at=None,
+            verification_sent_at=None,
+        )
+        for role in witness_roles:
+            role.vote_token = uuid.uuid4()
+            role.save(update_fields=['vote_token'])
+
     return Response({
-        'message': 'Heartbeat received. Status is now active.',
+        'message': 'Check-in received. Your vault is active and locked.',
         'last_seen': profile.last_seen,
         'status': profile.status,
-        'timeout_days': profile.timeout_days
+        'timeout_days': profile.timeout_days,
     }, status=status.HTTP_200_OK)
-
-   except Exception as e:
-        return Response(
-            {"error": "Failed to update status", "detail": str(e)},
-            status=status.HTTP_400_BAD_REQUEST
-        )
 
 
 # ============================================================
@@ -490,52 +515,144 @@ def stay_alive(request):
 
 
 class NomineeViewSet(viewsets.ModelViewSet):
-
     serializer_class = NomineeSerializer
     permission_classes = [permissions.IsAuthenticated]
-    queryset = Nominee.objects.all()  
+    queryset = Nominee.objects.all()
 
     def get_queryset(self):
-        return Nominee.objects.filter(user=self.request.user)
+        return Nominee.objects.filter(user=self.request.user).prefetch_related('roles')
+
+    def destroy(self, request, *args, **kwargs):
+        nominee = self.get_object()
+        profile = UserProfile.objects.filter(user=request.user).first()
+        if profile and profile.status != 'active':
+            return Response(
+                {'error': 'Contacts cannot be removed while release verification is active.'},
+                status=status.HTTP_409_CONFLICT,
+            )
+        if nominee.credentials.exists() or nominee.vault_items.exists():
+            return Response(
+                {'error': 'Reassign this contact’s credentials and capsules before removing them.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        nominee.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def create(self, request, *args, **kwargs):
+        _require_active_legacy_plan(request.user)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         nominee = serializer.save()
-        invitation_sent = send_nominee_invitation_email(
-            nominee.nominee_email,
-            nominee.nominee_name,
+        invitations = send_pending_role_invitations(
+            nominee,
             request.user.get_full_name() or request.user.email,
-            nominee.id,
         )
+        response_data = self.get_serializer(nominee).data
+        response_data['invitation_sent'] = invitations['sent']
+        response_data['invitations'] = invitations['roles']
         headers = self.get_success_headers(serializer.data)
         return Response(
-            {**serializer.data, 'invitation_sent': invitation_sent},
+            response_data,
             status=status.HTTP_201_CREATED,
             headers=headers,
         )
 
+    def update(self, request, *args, **kwargs):
+        _require_active_legacy_plan(request.user)
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        nominee = serializer.save()
+        invitations = send_pending_role_invitations(
+            nominee,
+            request.user.get_full_name() or request.user.email,
+        )
+        response_data = self.get_serializer(nominee).data
+        response_data['invitation_sent'] = invitations['sent']
+        response_data['invitations'] = invitations['roles']
+        return Response(response_data)
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def confirm_nominee(request, token):
+    @action(detail=True, methods=['post'], url_path='resend-invitation')
+    def resend_invitation(self, request, pk=None):
+        _require_active_legacy_plan(request.user)
+        nominee = self.get_object()
+        for role in nominee.roles.filter(consent_status='declined'):
+            role.consent_status = 'pending'
+            role.confirmed_at = None
+            role.invitation_sent_at = None
+            role.save(update_fields=[
+                'consent_status',
+                'confirmed_at',
+                'invitation_sent_at',
+            ])
+        invitations = send_pending_role_invitations(
+            nominee,
+            request.user.get_full_name() or request.user.email,
+            resend=True,
+        )
+        response_data = self.get_serializer(nominee).data
+        response_data['invitation_sent'] = invitations['sent']
+        response_data['invitations'] = invitations['roles']
+        return Response(response_data)
+
+
+def _invitation_role_from_token(token):
     try:
         raw_value = nominee_signer.unsign(token, max_age=7 * 24 * 60 * 60)
-        nominee_id, nominee_email = raw_value.split(':', 1)
-    except (BadSignature, SignatureExpired, ValueError):
+        role_id, invitation_token, nominee_email = raw_value.split(':', 2)
+        invitation_token = uuid.UUID(invitation_token)
+        return NomineeRole.objects.select_related(
+            'nominee',
+            'nominee__user',
+        ).get(
+            id=role_id,
+            invitation_token=invitation_token,
+            nominee__nominee_email__iexact=nominee_email,
+        )
+    except (BadSignature, SignatureExpired, ValueError, NomineeRole.DoesNotExist):
+        return None
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def confirm_nominee(request, token):
+    role = _invitation_role_from_token(token)
+    if role is None:
         return Response({'error': 'This confirmation link is invalid or expired.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    nominee = Nominee.objects.filter(id=nominee_id, nominee_email=nominee_email).first()
-    if not nominee:
-        return Response({'error': 'This nominee invitation could not be found.'}, status=status.HTTP_404_NOT_FOUND)
+    if request.method == 'GET':
+        return Response({
+            'nominee_name': role.nominee.nominee_name,
+            'owner_name': role.nominee.user.get_full_name() or role.nominee.user.email,
+            'role': role.role,
+            'role_display': role.get_role_display(),
+            'consent_status': role.consent_status,
+        })
 
-    NomineeRole.objects.filter(nominee=nominee).update(confirmed_at=timezone.now())
+    decision = request.data.get('decision')
+    if decision not in ('accept', 'decline'):
+        return Response(
+            {'decision': 'Choose accept or decline.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    target_status = 'accepted' if decision == 'accept' else 'declined'
+    if role.consent_status != 'pending':
+        if role.consent_status == target_status:
+            return Response({'consent_status': role.consent_status})
+        return Response(
+            {'error': 'A different decision has already been recorded.'},
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    role.consent_status = target_status
+    role.confirmed_at = timezone.now() if target_status == 'accepted' else None
+    role.save(update_fields=['consent_status', 'confirmed_at'])
 
     return Response({
-        'message': f'Thank you, {nominee.nominee_name}. Your confirmation has been recorded.',
-        'nominee_name': nominee.nominee_name,
-        'nominee_email': nominee.nominee_email,
-    }, status=status.HTTP_200_OK)
+        'message': 'Your role decision has been recorded.',
+        'consent_status': role.consent_status,
+    })
 
 
 class NomineeRoleViewSet(viewsets.ReadOnlyModelViewSet):
@@ -544,8 +661,71 @@ class NomineeRoleViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = NomineeRole.objects.all()  
 
     def get_queryset(self):
-        
         return NomineeRole.objects.filter(nominee__user=self.request.user)
+
+
+class LegacyAIAccessViewSet(viewsets.ModelViewSet):
+    serializer_class = LegacyAIAccessSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = LegacyAIAccess.objects.all()
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        return LegacyAIAccess.objects.filter(
+            user=self.request.user,
+        ).select_related('nominee')
+
+    def perform_destroy(self, instance):
+        _require_active_legacy_plan(self.request.user)
+        instance.delete()
+
+    def create(self, request, *args, **kwargs):
+        _require_active_legacy_plan(request.user)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        access, created = LegacyAIAccess.objects.get_or_create(
+            user=request.user,
+            nominee=serializer.validated_data['nominee'],
+        )
+        response = self.get_serializer(access)
+        return Response(
+            response.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+class TrustedCircleSettingsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @staticmethod
+    def _response_data(profile):
+        accepted_witnesses = NomineeRole.objects.filter(
+            nominee__user=profile.user,
+            role='witness',
+            consent_status='accepted',
+        ).values('nominee_id').distinct().count()
+        return {
+            'witness_quorum': profile.witness_quorum,
+            'accepted_witnesses': accepted_witnesses,
+            'ready': accepted_witnesses >= profile.witness_quorum,
+            'quorum_frozen': profile.status != 'active',
+            'status': profile.status,
+        }
+
+    def get(self, request):
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        return Response(self._response_data(profile))
+
+    def patch(self, request):
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        serializer = TrustedCircleSettingsSerializer(
+            profile,
+            data=request.data,
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(self._response_data(profile))
 
 # ============================================================
 # Credentials
@@ -556,9 +736,13 @@ class CredentialsListView(generics.ListCreateAPIView):
     serializer_class = CredentialsSerializer
 
     def get_queryset(self):
-        return Credentials.objects.filter(user=self.request.user).select_related("user")
+        return Credentials.objects.filter(user=self.request.user).select_related(
+            'user',
+            'assigned_nominee',
+        )
 
     def perform_create(self, serializer):
+        _require_active_legacy_plan(self.request.user)
         serializer.save(user=self.request.user)
 
 
@@ -569,6 +753,13 @@ class CredentialsDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return Credentials.objects.filter(user=self.request.user)
 
+    def perform_update(self, serializer):
+        _require_active_legacy_plan(self.request.user)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        _require_active_legacy_plan(self.request.user)
+        instance.delete()
 
 # ============================================================
 # Vault item
@@ -584,7 +775,16 @@ class VaultItemViewSet(viewsets.ModelViewSet):
         return VaultItem.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
+        _require_active_legacy_plan(self.request.user)
         serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        _require_active_legacy_plan(self.request.user)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        _require_active_legacy_plan(self.request.user)
+        instance.delete()
 ############# password setter###########
 
 
@@ -621,10 +821,16 @@ class MyReleasedAssetsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        try:
-            nominee = Nominee.objects.get(login_account=request.user)
-        except Nominee.DoesNotExist:
-            return Response({"error": "It's not linked with any nominee"}, status=404)
+        nominee = Nominee.objects.filter(
+            login_account=request.user,
+            roles__role='beneficiary',
+            roles__consent_status='accepted',
+        ).distinct().first()
+        if nominee is None:
+            return Response(
+                {'error': 'No released beneficiary assets are available for this account.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         vault_items = VaultItem.objects.filter(recipient=nominee, is_sent=True)
         credentials = Credentials.objects.filter(assigned_nominee=nominee, status='released')
@@ -633,6 +839,46 @@ class MyReleasedAssetsView(APIView):
             "vault_items": VaultItemSerializer(vault_items, many=True).data,
             "credentials": CredentialsSerializer(credentials, many=True).data,
         })
+
+
+class MyReleasedCapsuleFileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        item = VaultItem.objects.filter(id=pk).select_related('user', 'recipient').first()
+        if item is None:
+            return Response(
+                {'error': 'This capsule is not available to this account.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        owner_profile = UserProfile.objects.filter(user=request.user).first()
+        is_owner = (
+            item.user_id == request.user.id
+            and (owner_profile is None or owner_profile.status != 'released')
+        )
+        is_released_beneficiary = (
+            item.is_sent
+            and Nominee.objects.filter(
+                id=item.recipient_id,
+                login_account=request.user,
+                roles__role='beneficiary',
+                roles__consent_status='accepted',
+            ).exists()
+        )
+        if not is_owner and not is_released_beneficiary:
+            return Response(
+                {'error': 'This capsule is not available to this account.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        content_type = mimetypes.guess_type(item.file.name)[0] or 'application/octet-stream'
+        return FileResponse(
+            item.file.open('rb'),
+            as_attachment=True,
+            filename=item.file.name.rsplit('/', 1)[-1],
+            content_type=content_type,
+        )
 
 
 def home(request):

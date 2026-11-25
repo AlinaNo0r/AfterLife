@@ -1,111 +1,112 @@
-# killswitch/tasks.py
+import logging
+import os
+import uuid
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.interval import IntervalTrigger
-from django.utils import timezone
 from django.db import transaction
-import logging
+from django.utils import timezone
+
+from FYP_app.emails import send_legacy_warning_email
+from FYP_app.models import NomineeRole, UserProfile
+
+from .legacy_release import send_witness_verification_requests
+from .services import check_scheduled_releases
 
 logger = logging.getLogger(__name__)
-
 scheduler = BackgroundScheduler()
 
 
 def check_all_heartbeats():
-    """
-    Daily Killswitch Checker - Full Escalation Logic
-    Follows this flow:
-    1. Active → Warning (email witnesses)
-    2. Warning period over → Triggered (start release process)
-    """
-    from FYP_app.models import UserProfile   
-    logger.info(" Daily Check Started...")
-
     now = timezone.now()
-    
-   
-    profiles = UserProfile.objects.filter(status__in=['active', 'warning'])
+    profile_ids = UserProfile.objects.filter(
+        status__in=['active', 'warning'],
+    ).values_list('id', flat=True)
 
-    for profile in profiles:
-        try:
-            with transaction.atomic():
-                # Lock database row from external changes until this loop completes
-                profile = UserProfile.objects.select_for_update().get(pk=profile.pk)
-                # Use standard fallback default if field is missing or null
-                timeout_limit = getattr(profile, 'timeout_days', 30) or 30
-                days_since_last_seen = (now - profile.last_seen).days
+    for profile_id in profile_ids:
+        with transaction.atomic():
+            profile = UserProfile.objects.select_for_update().select_related(
+                'user',
+            ).filter(id=profile_id).first()
+            if profile is None:
+                continue
 
-                # days_since_last_seen = (now - profile.last_seen).days
-
-                if days_since_last_seen <= profile.timeout_days:
+            if profile.status == 'active':
+                inactive_days = (now - profile.last_seen).days
+                if inactive_days < profile.timeout_days:
                     continue
 
-                # === STEP 1: Active → Warning ===
-                if profile.status == 'active':
-                    profile.status = 'warning'
-                    profile.warning_start = now
-                    profile.save(update_fields=['status', 'warning_start'])
-                
-                    profile.notify_nominees_warning()   # Witnesses ko email
-                
-                    logger.warning(f"⚠️ WARNING triggered for {profile.user.username} "
-                             f"({days_since_last_seen} days missed)")
+                profile.status = 'warning'
+                profile.warning_start = now
+                profile.release_quorum_snapshot = profile.witness_quorum
+                profile.save(update_fields=[
+                    'status',
+                    'warning_start',
+                    'release_quorum_snapshot',
+                ])
+                witness_roles = NomineeRole.objects.filter(
+                    nominee__user=profile.user,
+                    role='witness',
+                )
+                witness_roles.update(
+                    vote=None,
+                    voted_at=None,
+                    verification_sent_at=None,
+                )
+                for role in witness_roles:
+                    role.vote_token = uuid.uuid4()
+                    role.save(update_fields=['vote_token'])
 
-            # === STEP 2: Warning Phase Milestone Evaluation ===
-                elif profile.status == 'warning':
-                    if profile.warning_start:
-                        days_in_warning = (now - profile.warning_start).days
-                    else:
-                        days_in_warning = 0
-                
-                    # If the user has failed to check in during the 7-day grace period
-                    if days_in_warning > 7:         
-                        logger.warning(f"⏳ Grace period over for {profile.user.username}. Dispatched confirmation request to nominees.")
-                    
-                    # 🔒 SECURITY UPDATE: Instead of a blind data dump, dispatch the interactive decision webhooks to nominees
-                        from FYP_app.emails import send_nominee_verification_email
-                    
-                    # Fetch all saved nominees for this specific user profile
-                        witnesses = profile.user.nominees.all()
-                    
-                        if not witnesses.exists():
-                            logger.error(f"❌ Missing Nominees: Cannot escalate validation for user {profile.user.username}")
-                            continue
-                        
-                        # Loop through nominees and fire the customized verification template emails
-                        for nominee in witnesses:
-                            send_nominee_verification_email(
-                                nominee_email=nominee.nominee_email,
-                                nominee_name=nominee.nominee_name,
-                                owner_name=profile.user.get_full_name() or profile.user.username,
-                                profile_id=profile.id  # Passes database context primary row ID for the email link
-                            )
-                        
-                    # Note: We keep their status as 'warning' for now. 
-                    # The status changes to 'inactive' ONLY if a nominee clicks the "Deceased Link" view button.
+                transaction.on_commit(
+                    lambda email=profile.user.email, name=(
+                        profile.user.get_full_name() or profile.user.username
+                    ), days=inactive_days: send_legacy_warning_email(
+                        email,
+                        name,
+                        days,
+                    )
+                )
+                logger.warning(
+                    "User profile %s entered warning; witness quorum frozen at %s",
+                    profile.id,
+                    profile.release_quorum_snapshot,
+                )
+                continue
 
-        except Exception as e:
-            logger.error(f"Error checking killswitch for user {getattr(profile.user, 'username', 'Unknown')}: {e}")\
+            if profile.warning_start is None:
+                logger.error(
+                    "Warning profile %s has no warning_start; leaving assets locked",
+                    profile.id,
+                )
+                continue
 
-    logger.info("✅ Daily Check Completed.")
+            if (now - profile.warning_start).days >= 7:
+                transaction.on_commit(
+                    lambda current_profile=profile: send_witness_verification_requests(
+                        current_profile
+                    )
+                )
 
 
 def start_scheduler():
     if scheduler.running:
-        logger.info("Scheduler already running, skipping...")
+        logger.info("Killswitch scheduler already running")
+        return
+    if os.environ.get('RUN_MAIN') != 'true':
         return
 
-    try:
-        scheduler.add_job(
-            check_all_heartbeats,
-            trigger=IntervalTrigger(days=1),          
-            id='daily_check',
-            replace_existing=True,                    #replacing existing job if it exists
-            next_run_time=timezone.now() + timezone.timedelta(seconds=30)  # Testing ke liye jaldi
-        )
-        
-        scheduler.start()
-        logger.info(" Killswitch Scheduler Started Successfully!")
-        
-    except Exception as e:
-        logger.error(f"Failed to start Killswitch scheduler: {e}")
+    scheduler.add_job(
+        check_all_heartbeats,
+        trigger='interval',
+        days=1,
+        id='daily_heartbeat_check',
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        check_scheduled_releases,
+        trigger='interval',
+        days=1,
+        id='daily_scheduled_release_check',
+        replace_existing=True,
+    )
+    scheduler.start()
+    logger.info("Killswitch scheduler started")

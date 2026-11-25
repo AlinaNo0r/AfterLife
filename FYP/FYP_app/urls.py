@@ -1,12 +1,22 @@
 from django.urls import path
 from . import views
 from rest_framework.routers import DefaultRouter
-from .views import NomineeRoleViewSet, NomineeViewSet, VaultItemViewSet, set_password_view,MyReleasedAssetsView
+from .views import (
+    LegacyAIAccessViewSet,
+    NomineeRoleViewSet,
+    NomineeViewSet,
+    TrustedCircleSettingsView,
+    VaultItemViewSet,
+    set_password_view,
+    MyReleasedAssetsView,
+    MyReleasedCapsuleFileView,
+)
 
 router = DefaultRouter()
 router.register('nominee-roles', NomineeRoleViewSet, basename='nominee-role')
 router.register('nominees', NomineeViewSet, basename='nominee')
 router.register('vault-items', VaultItemViewSet, basename='vault-item')
+router.register('legacy-ai-access', LegacyAIAccessViewSet, basename='legacy-ai-access')
 
 
 urlpatterns = [
@@ -15,6 +25,7 @@ urlpatterns = [
     path('api/register/verify/', views.verify_registration_otp, name='verify-registration'),
     path('api/register/resend-code/', views.resend_registration_otp, name='resend-registration-code'),
     path('api/nominee/confirm/<str:token>/', views.confirm_nominee, name='confirm-nominee'),
+    path('api/trusted-circle/settings/', TrustedCircleSettingsView.as_view(), name='trusted-circle-settings'),
     path('api/login/', views.LoginView.as_view(), name='login'),
     path('api/logout/', views.logout_view, name='logout'),
     path('api/onboarding/complete/', views.complete_onboarding, name='complete-onboarding'),
@@ -37,6 +48,7 @@ urlpatterns = [
 
     #Nominee gets data
     path('my-assets/', MyReleasedAssetsView.as_view(), name='my-released-assets'),
+    path('my-assets/capsules/<int:pk>/file/', MyReleasedCapsuleFileView.as_view(), name='my-released-capsule-file'),
 
 
 ]

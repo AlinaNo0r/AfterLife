@@ -24,6 +24,8 @@ records, and images).
 * **The AI Digital Twin Persona Chatbot:** Formulate a conversational text portal for verified beneficiaries that restricts all topic outputs to the exact text history provided by the creator.
 * **The Milestone Video Vault:** Construct a time-locked queue that calculates release dates using future system timestamps, securely holding data until the active calendar clock matches the release criteria.
 * **The Consensus Verification Ring:** Enforce a double-verification rule requiring confirmation from both independent contacts before changing account state flags.
+* **The Trusted Circle:** Invite contacts separately as beneficiaries, death witnesses, or both. Each role requires its own explicit acceptance. Assign credentials, memory capsules, and future Legacy AI access in their respective sections. Legacy AI training and chat are not connected in this build.
+* **Fail-Closed Witness Quorum:** Require at least two accepted witnesses to confirm death before inactivity-based release. Owners may increase the quorum; it is frozen when warning begins, and inactivity alone never releases assets.
 
 ### 🛠️ Technologies Used:
 * **Frontend:** HTML, CSS, JAvascript, React
@@ -42,6 +44,8 @@ The React frontend and Django API run in separate terminals. Start PostgreSQL fi
    .\.venv\Scripts\python.exe .\FYP\manage.py runserver 127.0.0.1:8000
    ```
 
+   Trusted Circle invitations need a working email configuration in `FYP/.env` (`EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`, and `FRONTEND_URL`). Credential encryption also requires a valid `FIELD_ENCRYPTION_KEY`; keep it outside source control and do not replace it after storing encrypted credentials.
+
 2. In a second terminal, start the frontend:
 
    ```powershell
@@ -50,6 +54,8 @@ The React frontend and Django API run in separate terminals. Start PostgreSQL fi
    ```
 
 3. Open the frontend URL shown by Vite (usually `http://localhost:5173`). Its development proxy forwards API requests to Django on port 8000.
+
+Vault uploads are not served from a public media URL. Released capsules are downloaded through the authenticated beneficiary endpoint, which checks both the accepted beneficiary role and the capsule's release state.
 
 ###  ⚙  Development Baseline
 * **Processor Engine (CPU):** Minimum 2.0 GHz Quad-core processor (intel core i5, AMD ryzen 5)

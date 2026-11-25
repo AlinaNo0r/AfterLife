@@ -41,24 +41,36 @@ def send_otp_email(user_email, otp_code, execution_purpose):
         return False
 
 
-def build_nominee_confirmation_url(nominee_id, nominee_email):
-    token = nominee_signer.sign(f"{nominee_id}:{nominee_email}")
-    return f"{settings.SITE_URL}/api/nominee/confirm/{token}/"
+def build_nominee_confirmation_url(role):
+    token = nominee_signer.sign(
+        f"{role.id}:{role.invitation_token}:{role.nominee.nominee_email}"
+    )
+    return f"{settings.FRONTEND_URL}/nominee-invitation/{token}"
 
 
-def send_nominee_invitation_email(nominee_email, nominee_name, owner_name, nominee_id):
-    confirmation_url = build_nominee_confirmation_url(nominee_id, nominee_email)
-    subject = f"Confirm your role in {owner_name}'s Digital Vault"
+def send_nominee_invitation_email(role, owner_name):
+    nominee = role.nominee
+    confirmation_url = build_nominee_confirmation_url(role)
+    role_name = role.get_role_display().lower()
+    subject = f"Confirm your {role_name} role in {owner_name}'s Digital Vault"
     message = (
-        f"Hello {nominee_name},\n\n"
-        f"{owner_name} has invited you to join their trusted circle in Digital Vault. "
-        "Please confirm whether you would like to be a nominee and receive access under their chosen conditions.\n\n"
+        f"Hello {nominee.nominee_name},\n\n"
+        f"{owner_name} has invited you to be a {role_name} in their Trusted Circle. "
+        "This invitation is only for the role named above; any other role has a separate decision.\n\n"
         f"Confirm here: {confirmation_url}\n\n"
+        "The link expires in seven days. Opening the link will not accept the invitation; "
+        "you will be asked to make an explicit choice.\n\n"
         "Regards,\nDigital Vault Team"
     )
 
     try:
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [nominee_email], fail_silently=False)
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [nominee.nominee_email],
+            fail_silently=False,
+        )
         return True
     except Exception as e:
         logger.error(f"Failed to send nominee invitation: {e}")
@@ -88,50 +100,31 @@ def send_legacy_warning_email(user_email, username, total_days_missed):
         return False
 
 
-def send_nominee_verification_email(nominee_email, nominee_name, owner_name, profile_id):
-    """Sends confirmation query containing execution paths directly to the Nominee."""
+def send_nominee_verification_email(role, owner_name):
+    """Ask one accepted witness to record an explicit death/alive vote."""
+    nominee = role.nominee
     subject = f"🔐 Verification Required: Digital Legacy Status for {owner_name}"
-    
-    # Generate fallback links pointing directly to your local development host server endpoints
-    alive_link = f"http://127.0.0{profile_id}/"
-    deceased_link = f"http://127.0.0{profile_id}/"
-    
+    confirmation_url = f"{settings.FRONTEND_URL}/witness-confirmation/{role.vote_token}"
     message = (
-        f"Dear {nominee_name},\n\n"
-        f"You have been designated as a trusted legacy beneficiary by {owner_name}.\n"
-        f"The owner has been unresponsive. We require you to verify their status:\n\n"
-        f"👉 IF THEY ARE ALIVE & WELL (Extends countdown by 7 days):\n"
-        f"{alive_link}\n\n"
-        f"👉 IF THEY HAVE PASSED AWAY (Activates Vault Release / AI Chatbot Branch):\n"
-        f"{deceased_link}\n\n"
-        f"Please act promptly to ensure secure data preservation transmission pipelines.\n\n"
+        f"Dear {nominee.nominee_name},\n\n"
+        f"{owner_name} has not checked in. As an accepted death witness, please review "
+        "the request and explicitly confirm whether they are alive or have passed away.\n\n"
+        f"Review and respond: {confirmation_url}\n\n"
+        "Legacy assets remain locked until the required witness quorum confirms death. "
+        "This link is personal to your witness role.\n\n"
         f"Regards,\nDigital Vault Automation Core"
     )
     try:
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [nominee_email], fail_silently=False)
-        logger.info(f"Verification email dispatched to nominee: {nominee_email}")
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [nominee.nominee_email],
+            fail_silently=False,
+        )
+        logger.info("Witness verification email dispatched to nominee id %s", nominee.id)
         return True
     except Exception as e:
         logger.error(f"Failed to dispatch verification email: {e}")
         return False
-
-# ──────────────────────────────────────────────
-# 3. LEGACY HERITAGE TRANSFER (DECRYPTED DUMP)
-# ──────────────────────────────────────────────
-
-def send_final_vault_payload(nominee_email, nominee_name, platform, username, password):
-    """Delivers the actual decrypted legacy data block directly to the authorized beneficiary."""
-    subject = "🔑 Secure Legacy Asset Handover: Credentials Released"
-    message = (
-        f"Dear {nominee_name},\n\n"
-        f"Pursuant to the validated legacy protocol execution rules, the secure vault has unlocked your assigned assets.\n\n"
-        f"--- VAULT ITEM ENTRY ---\n"
-        f"Platform Domain: {platform}\n"
-        f"Username ID: {username}\n"
-        f"Decrypted Password: {password}\n"
-        f"------------------------\n\n"
-        f"Please record these credentials immediately. This packet is fully encrypted at rest on disk.\n\n"
-        f"Regards,\nDigital Vault Core"
-    )
-    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [nominee_email])
 

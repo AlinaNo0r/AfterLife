@@ -67,8 +67,69 @@ export function createNominee(nomineeData) {
   return sendApiRequest('/nominees/', nomineeData, { authenticated: true })
 }
 
+export function updateNominee(id, nomineeData) {
+  return sendApiRequest(`/nominees/${id}/`, nomineeData, { authenticated: true, method: 'PATCH' })
+}
+
+export function deleteNominee(id) {
+  return sendApiRequest(`/nominees/${id}/`, undefined, { authenticated: true, method: 'DELETE' })
+}
+
+export function resendNomineeInvitation(id) {
+  return sendApiRequest(`/nominees/${id}/resend-invitation/`, {}, { authenticated: true })
+}
+
+export function getNomineeInvitation(token) {
+  return sendApiRequest(`/api/nominee/confirm/${encodeURIComponent(token)}/`, undefined, { method: 'GET' })
+}
+
+export function respondToNomineeInvitation(token, decision) {
+  return sendApiRequest(`/api/nominee/confirm/${encodeURIComponent(token)}/`, { decision })
+}
+
+export function submitWitnessVote(token, decision) {
+  const action = decision === 'death' ? 'vote-death' : 'vote-alive'
+  return sendApiRequest(`/api/killswitch/${action}/${encodeURIComponent(token)}/`, {})
+}
+
+export function setNomineePassword(uid, token, passwordData) {
+  return sendApiRequest(`/set-password/${encodeURIComponent(uid)}/${encodeURIComponent(token)}/`, passwordData)
+}
+
 export function createVaultItem(itemData) {
   return sendApiRequest('/vault-items/', itemData, { authenticated: true, multipart: true })
+}
+
+export function updateVaultItem(id, itemData) {
+  return sendApiRequest(`/vault-items/${id}/`, itemData, { authenticated: true, method: 'PATCH', multipart: true })
+}
+
+export function createCredential(credentialData) {
+  return sendApiRequest('/api/credentials/', credentialData, { authenticated: true })
+}
+
+export function updateCredential(id, credentialData) {
+  return sendApiRequest(`/api/credentials/${id}/`, credentialData, { authenticated: true, method: 'PATCH' })
+}
+
+export function getLegacyAIAccess() {
+  return sendApiRequest('/legacy-ai-access/', undefined, { authenticated: true, method: 'GET' })
+}
+
+export function assignLegacyAIAccess(nomineeId) {
+  return sendApiRequest('/legacy-ai-access/', { nominee: nomineeId }, { authenticated: true })
+}
+
+export function removeLegacyAIAccess(id) {
+  return sendApiRequest(`/legacy-ai-access/${id}/`, undefined, { authenticated: true, method: 'DELETE' })
+}
+
+export function getTrustedCircleSettings() {
+  return sendApiRequest('/api/trusted-circle/settings/', undefined, { authenticated: true, method: 'GET' })
+}
+
+export function updateTrustedCircleSettings(settings) {
+  return sendApiRequest('/api/trusted-circle/settings/', settings, { authenticated: true, method: 'PATCH' })
 }
 
 export function getCurrentUser() {

@@ -9,6 +9,9 @@ import {
   ShieldCheck,
   UsersRound,
 } from 'lucide-react';
+import { CredentialsManager, MemoryCapsuleManager } from './AssetManagers.jsx'
+import LegacyAIAccessManager from './LegacyAIAccessManager.jsx'
+import TrustedCircleManager from './TrustedCircleManager.jsx'
 
 const FEATURES = {
   'trusted-circle': {
@@ -82,58 +85,15 @@ function FeatureRows({ rows, icon: RowIcon, emptyMessage }) {
   );
 }
 
-function TrustedCircleDetails({ nominees = [] }) {
+function HiddenKeysDetails({ credentials = [], nominees, onCreateCredential, onAssignCredential, locked }) {
   return (
-    <section className="feature-content-card">
-      <div className="feature-content-heading">
-        <div>
-          <p className="feature-eyebrow">YOUR PEOPLE</p>
-          <h2>Trusted contacts</h2>
-        </div>
-        <span className="feature-count">{nominees.length}</span>
-      </div>
-      <FeatureRows
-        icon={UsersRound}
-        emptyMessage="No trusted contacts have been added yet."
-        rows={nominees.map((nominee) => ({
-          id: nominee.id,
-          title: nominee.nominee_name || nominee.name || 'Trusted contact',
-          description: [nominee.relationship, nominee.email].filter(Boolean).join(' · '),
-          status: nominee.is_active === false ? 'Inactive' : 'On your list',
-        }))}
-      />
-    </section>
-  );
-}
-
-function HiddenKeysDetails({ credentials = [] }) {
-  return (
-    <section className="feature-content-card">
-      <div className="feature-content-heading">
-        <div>
-          <p className="feature-eyebrow">ACCOUNT RECORDS</p>
-          <h2>Saved credentials</h2>
-        </div>
-        <span className="feature-count">{credentials.length}</span>
-      </div>
-      <p className="feature-supporting-copy">
-        Passwords are never displayed on this overview.
-      </p>
-      <FeatureRows
-        icon={KeyRound}
-        emptyMessage="No credentials have been saved yet."
-        rows={credentials.map((credential) => ({
-          id: credential.id,
-          title: credential.platform || 'Saved account',
-          description:
-            credential.username_on_platform ||
-            credential.email_on_platform ||
-            credential.platform_url ||
-            'Account details are stored securely.',
-          status: 'Protected',
-        }))}
-      />
-    </section>
+    <CredentialsManager
+      credentials={credentials}
+      nominees={nominees}
+      onCreate={onCreateCredential}
+      onAssign={onAssignCredential}
+      locked={locked}
+    />
   );
 }
 
@@ -154,22 +114,19 @@ function CapsuleRows({ items = [] }) {
   );
 }
 
-function MemoryCapsulesDetails({ items = [] }) {
+function MemoryCapsulesDetails({ items = [], nominees, onCreateCapsule, onAssignCapsule, locked }) {
   return (
-    <section className="feature-content-card">
-      <div className="feature-content-heading">
-        <div>
-          <p className="feature-eyebrow">PRESERVED FILES</p>
-          <h2>Your capsules</h2>
-        </div>
-        <span className="feature-count">{items.length}</span>
-      </div>
-      <CapsuleRows items={items} />
-    </section>
+    <MemoryCapsuleManager
+      items={items}
+      nominees={nominees}
+      onCreate={onCreateCapsule}
+      onAssign={onAssignCapsule}
+      locked={locked}
+    />
   );
 }
 
-function LegacyAIDetails() {
+function LegacyAIDetails({ nominees, accesses, onAssign, onRemove, locked }) {
   return (
     <>
       <section className="feature-content-card legacy-ai-explainer">
@@ -197,14 +154,13 @@ function LegacyAIDetails() {
           </div>
         </div>
       </section>
-      <section className="feature-content-card feature-status-card">
-        <span className="feature-status-label">CURRENT AVAILABILITY</span>
-        <p>
-          This build does not yet include a connected chatbot service. This
-          page describes the planned Legacy AI experience; it does not generate
-          conversations.
-        </p>
-      </section>
+      <LegacyAIAccessManager
+        nominees={nominees}
+        accesses={accesses}
+        onAssign={onAssign}
+        onRemove={onRemove}
+        locked={locked}
+      />
     </>
   );
 }
@@ -279,6 +235,19 @@ export default function DashboardFeatureView({
   nominees,
   credentials,
   items,
+  trustedCircleSettings,
+  legacyAIAccess,
+  onCreateNominee,
+  onUpdateNominee,
+  onDeleteNominee,
+  onResendInvitation,
+  onUpdateQuorum,
+  onCreateCredential,
+  onAssignCredential,
+  onCreateCapsule,
+  onAssignCapsule,
+  onAssignLegacyAI,
+  onRemoveLegacyAI,
   lastPulse,
   onBack,
   onStayAlive,
@@ -304,6 +273,12 @@ export default function DashboardFeatureView({
   }
 
   const FeatureIcon = feature.icon;
+  const acceptedBeneficiaries = nominees.filter((nominee) =>
+    nominee.role_statuses?.some(
+      (role) => role.role === 'beneficiary' && role.consent_status === 'accepted',
+    ),
+  );
+  const planLocked = trustedCircleSettings?.quorum_frozen || false;
 
   return (
     <section className="feature-view">
@@ -323,10 +298,46 @@ export default function DashboardFeatureView({
         </div>
       </header>
 
-      {featureId === 'trusted-circle' && <TrustedCircleDetails nominees={nominees} />}
-      {featureId === 'hidden-keys' && <HiddenKeysDetails credentials={credentials} />}
-      {featureId === 'memory-capsules' && <MemoryCapsulesDetails items={items} />}
-      {featureId === 'legacy-ai' && <LegacyAIDetails />}
+      {featureId === 'trusted-circle' && (
+        <TrustedCircleManager
+          nominees={nominees}
+          settings={trustedCircleSettings}
+          onCreate={onCreateNominee}
+          onUpdate={onUpdateNominee}
+          onDelete={onDeleteNominee}
+          onResend={onResendInvitation}
+          onUpdateQuorum={onUpdateQuorum}
+          onStayAlive={onStayAlive}
+          isCheckingIn={isCheckingIn}
+        />
+      )}
+      {featureId === 'hidden-keys' && (
+        <HiddenKeysDetails
+          credentials={credentials}
+          nominees={acceptedBeneficiaries}
+          onCreateCredential={onCreateCredential}
+          onAssignCredential={onAssignCredential}
+          locked={planLocked}
+        />
+      )}
+      {featureId === 'memory-capsules' && (
+        <MemoryCapsulesDetails
+          items={items}
+          nominees={acceptedBeneficiaries}
+          onCreateCapsule={onCreateCapsule}
+          onAssignCapsule={onAssignCapsule}
+          locked={planLocked}
+        />
+      )}
+      {featureId === 'legacy-ai' && (
+        <LegacyAIDetails
+          nominees={acceptedBeneficiaries}
+          accesses={legacyAIAccess}
+          onAssign={onAssignLegacyAI}
+          onRemove={onRemoveLegacyAI}
+          locked={planLocked}
+        />
+      )}
       {featureId === 'activity-monitor' && (
         <ActivityMonitorDetails
           lastPulse={lastPulse}

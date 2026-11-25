@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
 from django.conf import settings
@@ -107,16 +108,50 @@ class NomineeRole(models.Model):
         Nominee, on_delete=models.CASCADE, related_name='roles'
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    consent_status = models.CharField(
+        max_length=10,
+        choices=[
+            ('pending', 'Pending'),
+            ('accepted', 'Accepted'),
+            ('declined', 'Declined'),
+        ],
+        default='pending',
+    )
     assigned_at = models.DateTimeField(auto_now_add=True)
     confirmed_at = models.DateTimeField(null=True, blank=True)
+    invitation_token = models.UUIDField(default=uuid.uuid4, editable=False)
+    invitation_sent_at = models.DateTimeField(null=True, blank=True)
+    verification_sent_at = models.DateTimeField(null=True, blank=True)
     vote_token = models.UUIDField(default=uuid.uuid4, editable=False, null=True, blank=True)
     vote = models.CharField(max_length=10, choices=[('death', 'Confirmed Death'), ('alive', 'Confirmed Alive')], null=True, blank=True)
+    voted_at = models.DateTimeField(null=True, blank=True)
     
     class Meta:
         unique_together = ['nominee', 'role']
 
     def __str__(self):
         return f"{self.nominee.nominee_name} — {self.get_role_display()}"
+
+
+class LegacyAIAccess(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='legacy_ai_access'
+    )
+    nominee = models.ForeignKey(
+        Nominee, on_delete=models.CASCADE, related_name='legacy_ai_access'
+    )
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'nominee'],
+                name='unique_legacy_ai_access_per_nominee',
+            )
+        ]
+
+    def __str__(self):
+        return f"Legacy AI access for {self.nominee.nominee_name}"
 
 
 # ──────────────────────────────────────────────
@@ -194,6 +229,16 @@ class UserProfile(models.Model):
     witness_confirmed = models.BooleanField(default=False)
     witness_response_at = models.DateTimeField(null=True, blank=True)
     witness_token = models.UUIDField(default=uuid.uuid4, editable=False)
+    witness_quorum = models.PositiveSmallIntegerField(
+        default=2,
+        validators=[MinValueValidator(2)],
+        help_text="Accepted witness confirmations required before legacy release",
+    )
+    release_quorum_snapshot = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Witness quorum fixed when the warning period begins",
+    )
 
     # killswitch fields 
     timeout_days = models.PositiveIntegerField(

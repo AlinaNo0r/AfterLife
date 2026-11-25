@@ -11,11 +11,24 @@ import {
   UsersRound,
 } from 'lucide-react'
 import {
+  assignLegacyAIAccess,
+  createCredential,
+  createNominee,
+  createVaultItem,
+  deleteNominee,
   getCredentials,
   getCurrentUser,
+  getLegacyAIAccess,
   getNominees,
+  getTrustedCircleSettings,
   getVaultItems,
+  removeLegacyAIAccess,
+  resendNomineeInvitation,
   sendStayAlive,
+  updateCredential,
+  updateNominee,
+  updateTrustedCircleSettings,
+  updateVaultItem,
 } from '../../services/authService.js'
 import {
   CapsulesCard,
@@ -54,6 +67,8 @@ function DashboardPage() {
   const [nominees, setNominees] = useState([])
   const [credentials, setCredentials] = useState([])
   const [vaultItems, setVaultItems] = useState([])
+  const [trustedCircleSettings, setTrustedCircleSettings] = useState(null)
+  const [legacyAIAccess, setLegacyAIAccess] = useState([])
   const [loading, setLoading] = useState(true)
   const [lastPulse, setLastPulse] = useState(null)
   const [notice, setNotice] = useState('')
@@ -66,11 +81,20 @@ function DashboardPage() {
     let isMounted = true
 
     const loadDashboard = async () => {
-      const [userResult, nomineesResult, credentialsResult, vaultItemsResult] = await Promise.allSettled([
+      const [
+        userResult,
+        nomineesResult,
+        credentialsResult,
+        vaultItemsResult,
+        settingsResult,
+        legacyAIAccessResult,
+      ] = await Promise.allSettled([
         getCurrentUser(),
         getNominees(),
         getCredentials(),
         getVaultItems(),
+        getTrustedCircleSettings(),
+        getLegacyAIAccess(),
       ])
 
       if (!isMounted) return
@@ -81,6 +105,11 @@ function DashboardPage() {
       setNominees(nomineesResult.status === 'fulfilled' ? getList(nomineesResult.value) : [])
       setCredentials(credentialsResult.status === 'fulfilled' ? getList(credentialsResult.value) : [])
       setVaultItems(vaultItemsResult.status === 'fulfilled' ? getList(vaultItemsResult.value) : [])
+      setTrustedCircleSettings(settingsResult.status === 'fulfilled' ? settingsResult.value : null)
+      setLegacyAIAccess(legacyAIAccessResult.status === 'fulfilled' ? getList(legacyAIAccessResult.value) : [])
+      if (nomineesResult.status === 'rejected') {
+        setNotice(nomineesResult.reason?.message || 'Could not load your trusted contacts.')
+      }
       setLoading(false)
     }
 
@@ -110,12 +139,97 @@ function DashboardPage() {
     try {
       const response = await sendStayAlive()
       setLastPulse(response.last_seen)
+      setTrustedCircleSettings((current) => current
+        ? { ...current, status: 'active', quorum_frozen: false }
+        : current)
       setNotice(response.message || 'Check-in received. Your vault is active.')
     } catch (error) {
       setNotice(error.message || 'Could not update your check-in.')
     } finally {
       setIsCheckingIn(false)
     }
+  }
+
+  const refreshTrustedCircle = async () => {
+    const [nomineesResult, settingsResult] = await Promise.all([
+      getNominees(),
+      getTrustedCircleSettings(),
+    ])
+    setNominees(getList(nomineesResult))
+    setTrustedCircleSettings(settingsResult)
+  }
+
+  const handleCreateNominee = async (data) => {
+    const result = await createNominee(data)
+    setNominees((current) => current.some((nominee) => nominee.id === result.id)
+      ? current.map((nominee) => nominee.id === result.id ? result : nominee)
+      : [...current, result])
+    return result
+  }
+
+  const handleUpdateNominee = async (id, data) => {
+    const result = await updateNominee(id, data)
+    setNominees((current) => current.map((nominee) => nominee.id === id ? result : nominee))
+    await refreshTrustedCircle()
+    return result
+  }
+
+  const handleDeleteNominee = async (id) => {
+    await deleteNominee(id)
+    setNominees((current) => current.filter((nominee) => nominee.id !== id))
+    const settings = await getTrustedCircleSettings()
+    setTrustedCircleSettings(settings)
+  }
+
+  const handleResendInvitation = async (id) => {
+    const result = await resendNomineeInvitation(id)
+    setNominees((current) => current.map((nominee) => nominee.id === id ? result : nominee))
+    return result
+  }
+
+  const handleUpdateQuorum = async (witness_quorum) => {
+    const result = await updateTrustedCircleSettings({ witness_quorum })
+    setTrustedCircleSettings(result)
+    return result
+  }
+
+  const handleCreateCredential = async (data) => {
+    const result = await createCredential(data)
+    setCredentials((current) => [...current, result])
+    return result
+  }
+
+  const handleAssignCredential = async (id, assigned_nominee_id) => {
+    const result = await updateCredential(id, { assigned_nominee_id })
+    setCredentials((current) => current.map((credential) => credential.id === id ? result : credential))
+    return result
+  }
+
+  const handleCreateCapsule = async (data) => {
+    const result = await createVaultItem(data)
+    setVaultItems((current) => [...current, result])
+    return result
+  }
+
+  const handleAssignCapsule = async (id, recipient) => {
+    const data = new FormData()
+    data.append('recipient', recipient)
+    const result = await updateVaultItem(id, data)
+    setVaultItems((current) => current.map((item) => item.id === id ? result : item))
+    return result
+  }
+
+  const handleAssignLegacyAI = async (nomineeId) => {
+    const result = await assignLegacyAIAccess(nomineeId)
+    setLegacyAIAccess((current) => (
+      current.some((access) => access.id === result.id) ? current : [...current, result]
+    ))
+    return result
+  }
+
+  const handleRemoveLegacyAI = async (id) => {
+    await removeLegacyAIAccess(id)
+    setLegacyAIAccess((current) => current.filter((access) => access.id !== id))
   }
 
   const handleNavigate = (id) => {
@@ -192,6 +306,19 @@ function DashboardPage() {
               nominees={nominees}
               credentials={credentials}
               items={vaultItems}
+              trustedCircleSettings={trustedCircleSettings}
+              legacyAIAccess={legacyAIAccess}
+              onCreateNominee={handleCreateNominee}
+              onUpdateNominee={handleUpdateNominee}
+              onDeleteNominee={handleDeleteNominee}
+              onResendInvitation={handleResendInvitation}
+              onUpdateQuorum={handleUpdateQuorum}
+              onCreateCredential={handleCreateCredential}
+              onAssignCredential={handleAssignCredential}
+              onCreateCapsule={handleCreateCapsule}
+              onAssignCapsule={handleAssignCapsule}
+              onAssignLegacyAI={handleAssignLegacyAI}
+              onRemoveLegacyAI={handleRemoveLegacyAI}
               lastPulse={lastPulse}
               onBack={() => handleNavigate('dashboard')}
               onStayAlive={handleStayAlive}
