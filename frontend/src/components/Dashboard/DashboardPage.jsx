@@ -15,7 +15,9 @@ import {
   createCredential,
   createNominee,
   createVaultItem,
+  deleteCredential,
   deleteNominee,
+  deleteVaultItem,
   getCredentials,
   getCurrentUser,
   getLegacyAIAccess,
@@ -45,7 +47,7 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'trusted-circle', label: 'Trusted Circle', icon: UsersRound },
   { id: 'hidden-keys', label: 'Hidden Keys', icon: KeyRound },
-  { id: 'memory-capsules', label: 'Memory Capsules', icon: Archive },
+  { id: 'memory-capsules', label: 'Vault Items', icon: Archive },
   { id: 'legacy-ai', label: 'Legacy AI', icon: Sparkles },
 ]
 
@@ -187,8 +189,8 @@ function DashboardPage() {
     return result
   }
 
-  const handleUpdateQuorum = async (witness_quorum) => {
-    const result = await updateTrustedCircleSettings({ witness_quorum })
+  const handleSaveRequiredPeopleCount = async (requiredPeopleCount) => {
+    const result = await updateTrustedCircleSettings({ witness_quorum: requiredPeopleCount })
     setTrustedCircleSettings(result)
     return result
   }
@@ -205,18 +207,32 @@ function DashboardPage() {
     return result
   }
 
+  const handleUpdateCredential = async (id, data) => {
+    const result = await updateCredential(id, data)
+    setCredentials((current) => current.map((credential) => credential.id === id ? result : credential))
+    return result
+  }
+
+  const handleDeleteCredential = async (id) => {
+    await deleteCredential(id)
+    setCredentials((current) => current.filter((credential) => credential.id !== id))
+  }
+
   const handleCreateCapsule = async (data) => {
     const result = await createVaultItem(data)
     setVaultItems((current) => [...current, result])
     return result
   }
 
-  const handleAssignCapsule = async (id, recipient) => {
-    const data = new FormData()
-    data.append('recipient', recipient)
+  const handleUpdateCapsule = async (id, data) => {
     const result = await updateVaultItem(id, data)
     setVaultItems((current) => current.map((item) => item.id === id ? result : item))
     return result
+  }
+
+  const handleDeleteCapsule = async (id) => {
+    await deleteVaultItem(id)
+    setVaultItems((current) => current.filter((item) => item.id !== id))
   }
 
   const handleAssignLegacyAI = async (nomineeId) => {
@@ -308,15 +324,19 @@ function DashboardPage() {
               items={vaultItems}
               trustedCircleSettings={trustedCircleSettings}
               legacyAIAccess={legacyAIAccess}
+              isLightTheme={theme === 'light'}
               onCreateNominee={handleCreateNominee}
               onUpdateNominee={handleUpdateNominee}
               onDeleteNominee={handleDeleteNominee}
               onResendInvitation={handleResendInvitation}
-              onUpdateQuorum={handleUpdateQuorum}
+              onSaveRequiredPeopleCount={handleSaveRequiredPeopleCount}
               onCreateCredential={handleCreateCredential}
               onAssignCredential={handleAssignCredential}
+              onUpdateCredential={handleUpdateCredential}
+              onDeleteCredential={handleDeleteCredential}
               onCreateCapsule={handleCreateCapsule}
-              onAssignCapsule={handleAssignCapsule}
+              onUpdateCapsule={handleUpdateCapsule}
+              onDeleteCapsule={handleDeleteCapsule}
               onAssignLegacyAI={handleAssignLegacyAI}
               onRemoveLegacyAI={handleRemoveLegacyAI}
               lastPulse={lastPulse}

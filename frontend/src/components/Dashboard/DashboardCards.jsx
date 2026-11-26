@@ -126,7 +126,7 @@ export function CapsulesCard({ items, loading, onNavigate }) {
       <div className="card-icon-wrap capsule-icon">
         <Monitor size={22} strokeWidth={1.8} aria-hidden="true" />
       </div>
-      <h3>Memory Capsules</h3>
+      <h3>Vault Items</h3>
       <p>
         {loading
           ? 'Loading your vault items...'
@@ -149,7 +149,7 @@ export function CapsulesCard({ items, loading, onNavigate }) {
         type="button"
         onClick={() => onNavigate('memory-capsules')}
       >
-        <span>Browse capsules</span>
+        <span>Browse vault items</span>
         <ArrowRight size={16} aria-hidden="true" />
       </button>
     </article>
@@ -199,8 +199,8 @@ export function ReleasePlanCard({ items, loading, onNavigate }) {
         {loading
           ? 'Checking your saved release instructions...'
           : items.length
-            ? `${countText(items.length, 'capsule')} with ${scheduledCount} scheduled and ${recurringCount} recurring release${recurringCount === 1 ? '' : 's'}.`
-            : 'Choose who should receive each capsule and when it should be shared.'}
+            ? `${countText(items.length, 'vault item')} with ${scheduledCount} scheduled and ${recurringCount} recurring release${recurringCount === 1 ? '' : 's'}.`
+            : 'Choose who should receive each vault item and when it should be shared.'}
       </p>
       <button
         className="card-action-button"

@@ -285,7 +285,42 @@ class TrustedCircleTests(TestCase):
 		self.assertEqual(response.status_code, 201)
 		self.assertNotIn('password', response.data)
 
-	def test_memory_capsules_require_an_accepted_beneficiary_owned_by_the_user(self):
+	def test_credential_can_be_updated_without_replacing_its_password_or_exposed_secret(self):
+		invitation = self._invite('edit-credential@example.com', ['beneficiary'])
+		token = self._invitation_token('edit-credential@example.com')
+		decision = self.client.post(
+			f'/api/nominee/confirm/{token}/',
+			{'decision': 'accept'},
+			format='json',
+		)
+		self.assertEqual(decision.status_code, 200)
+
+		credential = Credentials.objects.create(
+			user=self.owner,
+			platform='Original platform',
+			platform_url='https://original.example.com',
+			username_on_platform='original-user',
+			email_on_platform='original@example.com',
+			password='unchanged-secret',
+			assigned_nominee=Nominee.objects.get(pk=invitation.data['id']),
+		)
+		response = self.client.patch(
+			f'/api/credentials/{credential.id}/',
+			{'platform': 'Updated platform'},
+			format='json',
+		)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(response.data['platform'], 'Updated platform')
+		self.assertNotIn('password', response.data)
+		credential.refresh_from_db()
+		self.assertEqual(credential.password, 'unchanged-secret')
+
+		delete_response = self.client.delete(f'/api/credentials/{credential.id}/')
+		self.assertEqual(delete_response.status_code, 204)
+		self.assertFalse(Credentials.objects.filter(pk=credential.id).exists())
+
+	def test_vault_items_require_an_accepted_beneficiary_owned_by_the_user(self):
 		response = self._invite('capsule-contact@example.com', ['beneficiary'])
 		nominee = Nominee.objects.get(pk=response.data['id'])
 		payload = {
@@ -308,6 +343,58 @@ class TrustedCircleTests(TestCase):
 			context={'request': SimpleNamespace(user=self.owner)},
 		)
 		self.assertTrue(serializer.is_valid(), serializer.errors)
+
+	def test_vault_item_release_types_require_their_scheduling_fields(self):
+		response = self._invite('release-contact@example.com', ['beneficiary'])
+		nominee = Nominee.objects.get(pk=response.data['id'])
+		nominee.roles.filter(role='beneficiary').update(consent_status='accepted')
+
+		options = [
+			({'release_type': 'scheduled', 'scheduled_date': '2030-01-01'}, True),
+			({'release_type': 'scheduled'}, False),
+			({
+				'release_type': 'recurring',
+				'scheduled_date': '2030-01-01',
+				'recurring_interval_days': 14,
+			}, True),
+			({'release_type': 'recurring', 'scheduled_date': '2030-01-01'}, False),
+		]
+		for release_options, should_be_valid in options:
+			payload = {
+				'title': 'Family memory',
+				'file': SimpleUploadedFile('memory.pdf', b'example', content_type='application/pdf'),
+				'recipient': nominee.id,
+				**release_options,
+			}
+			serializer = VaultItemSerializer(
+				data=payload,
+				context={'request': SimpleNamespace(user=self.owner)},
+			)
+			self.assertEqual(
+				serializer.is_valid(),
+				should_be_valid,
+				serializer.errors,
+			)
+
+	def test_vault_item_schedule_fields_are_retained_when_updating_an_assignment(self):
+		response = self._invite('scheduled-contact@example.com', ['beneficiary'])
+		nominee = Nominee.objects.get(pk=response.data['id'])
+		nominee.roles.filter(role='beneficiary').update(consent_status='accepted')
+
+		for release_type, interval in [('scheduled', None), ('recurring', 14)]:
+			instance = SimpleNamespace(
+				recipient=nominee,
+				release_type=release_type,
+				scheduled_date='2030-01-01',
+				recurring_interval_days=interval,
+			)
+			serializer = VaultItemSerializer(
+				instance=instance,
+				data={'recipient': nominee.id},
+				context={'request': SimpleNamespace(user=self.owner)},
+				partial=True,
+			)
+			self.assertTrue(serializer.is_valid(), serializer.errors)
 
 	def test_legacy_ai_assignment_requires_an_accepted_beneficiary(self):
 		response = self._invite('ai-contact@example.com', ['beneficiary'])
@@ -510,6 +597,63 @@ class WitnessQuorumTests(TestCase):
 		pending_credential.refresh_from_db()
 		self.assertEqual(accepted_credential.status, 'released')
 		self.assertEqual(pending_credential.status, 'locked')
+
+	def test_death_quorum_releases_only_vault_items_using_confirmed_passing(self):
+		beneficiary = Nominee.objects.create(
+			user=self.user,
+			nominee_name='Accepted Beneficiary',
+			nominee_email='accepted-beneficiary@example.com',
+			relationship='friend',
+		)
+		NomineeRole.objects.create(
+			nominee=beneficiary,
+			role='beneficiary',
+			consent_status='accepted',
+		)
+		media_dir = tempfile.TemporaryDirectory()
+		self.addCleanup(media_dir.cleanup)
+
+		with override_settings(MEDIA_ROOT=media_dir.name):
+			killswitch_item = VaultItem.objects.create(
+				user=self.user,
+				title='Release after confirmed passing',
+				file=SimpleUploadedFile('passing.txt', b'example'),
+				recipient=beneficiary,
+				release_type='killswitch',
+			)
+			scheduled_item = VaultItem.objects.create(
+				user=self.user,
+				title='Release on a date',
+				file=SimpleUploadedFile('scheduled.txt', b'example'),
+				recipient=beneficiary,
+				release_type='scheduled',
+				scheduled_date='2030-01-01',
+			)
+			recurring_item = VaultItem.objects.create(
+				user=self.user,
+				title='Release on a schedule',
+				file=SimpleUploadedFile('recurring.txt', b'example'),
+				recipient=beneficiary,
+				release_type='recurring',
+				scheduled_date='2030-01-01',
+				recurring_interval_days=14,
+			)
+			first = self._witness_role('vault-one')
+			second = self._witness_role('vault-two')
+
+			from killswitch.legacy_release import record_witness_vote
+
+			record_witness_vote(first.vote_token, 'death')
+			result, status_code = record_witness_vote(second.vote_token, 'death')
+
+			self.assertEqual(status_code, 200)
+			self.assertEqual(result['status'], 'released')
+			killswitch_item.refresh_from_db()
+			scheduled_item.refresh_from_db()
+			recurring_item.refresh_from_db()
+			self.assertTrue(killswitch_item.is_sent)
+			self.assertFalse(scheduled_item.is_sent)
+			self.assertFalse(recurring_item.is_sent)
 
 
 class ReleasedCapsuleAccessTests(TestCase):

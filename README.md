@@ -67,7 +67,7 @@ Vault uploads are not served from a public media URL. Released capsules are down
 ### The Team
 * **Member 1 Alina Noor** - Reg No: 22-us-770-53 - Roll No: 22BSSE70753 - GitHub Profile: (https://github.com/AlinaNo0r)
 * **Member 2 Saima Kousar** - Reg No: 22-us-770-56 - Roll No: 22BSSE70761 - GitHub Profile: (https://github.com/Engineer-Saima)
-* **Member 2 Nayyan Khatoon** - Reg No: 22-us-770-54 - Roll No: 22BSSE70754 -  GitHub Profile: (https://github.com/Nayyab713)
+* **Member 2 Nayyab Khatoon** - Reg No: 22-us-770-54 - Roll No: 22BSSE70754 -  GitHub Profile: (https://github.com/Nayyab713)
 
 ### Supervisor
 * **Supervisor Name** - Sir Kaleem Ullah

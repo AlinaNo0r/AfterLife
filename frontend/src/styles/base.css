@@ -1,0 +1,50 @@
+@import url("https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --bg: #05070d;
+  --surface: #0c1018;
+  --surface-low: #111827;
+  --surface-lowest: rgba(17, 24, 39, 0.96);
+  --surface-high: #181f2d;
+  --surface-highest: #202b3d;
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --primary: #8d84ff;
+  --primary-container: #b7b0ff;
+  --primary-grad: linear-gradient(135deg, #a99bff 0%, #8074ff 50%, #5d6bff 100%);
+  --accent-green: #68d9a6;
+  --accent-yellow: #ffcf8b;
+  --on-surface: #f4f1ff;
+  --on-surface-muted: rgba(244, 241, 255, 0.7);
+  --lavender: #c8b8f7;
+  --lavender-strong: #a58ae9;
+  --text: #f1eefc;
+  --muted: #b0aec4;
+  --border: rgba(255, 255, 255, 0.08);
+  --shadow-sm: 0 16px 34px rgba(0, 0, 0, 0.18);
+  --shadow: 0 20px 44px rgba(0, 0, 0, 0.24);
+  --radius-pill: 999px;
+  --radius-lg: 20px;
+  --radius-card: 24px;
+  --font-display: "Lexend", sans-serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--on-surface);
+  font-family: var(--font-body);
+}
+
+button,
+input {
+  font: inherit;
+}

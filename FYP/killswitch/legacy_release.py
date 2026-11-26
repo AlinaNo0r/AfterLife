@@ -43,6 +43,7 @@ def _release_accepted_beneficiary_assets(profile):
         vault_items = VaultItem.objects.filter(
             recipient=nominee,
             is_sent=False,
+            release_type='killswitch',
         )
         released_count = credentials.count() + vault_items.count()
         credentials.update(status='released')
@@ -80,7 +81,7 @@ def record_witness_vote(vote_token, decision):
     if role.vote:
         if role.vote == decision:
             return {
-                'message': 'Your vote has already been recorded.',
+                'message': 'Your vote has been recorded.',
                 'status': profile.status,
                 'vote': role.vote,
             }, 200

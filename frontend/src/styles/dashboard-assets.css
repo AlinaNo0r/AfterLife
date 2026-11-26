@@ -1,0 +1,295 @@
+.credential-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.vault-item-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 16px;
+  gap: 10px;
+}
+
+.vault-item-form-actions .feature-primary-action {
+  margin-top: 0;
+}
+
+.vault-item-row.is-editing {
+  border-color: var(--dash-primary-container);
+}
+
+.vault-item-beneficiary {
+  display: grid;
+  min-width: 140px;
+  flex: 0 1 180px;
+  gap: 3px;
+}
+
+.vault-item-beneficiary span {
+  color: var(--dash-muted);
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.vault-item-beneficiary strong {
+  overflow-wrap: anywhere;
+  color: var(--dash-text);
+  font-size: 0.74rem;
+  font-weight: 650;
+}
+
+.credential-delete-confirm {
+  flex: 1 0 100%;
+  color: var(--dash-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.credential-action,
+.credential-cancel-edit {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid var(--dash-border);
+  border-radius: 11px;
+  background: var(--dash-glass);
+  color: var(--dash-text);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.credential-action.is-danger {
+  color: #ff9ba3;
+}
+
+.credential-action:disabled,
+.credential-cancel-edit:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.credential-help {
+  margin: 10px 0 0;
+  color: var(--dash-muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.asset-manager-title {
+  min-width: 180px;
+  flex: 1;
+  justify-content: flex-start;
+}
+
+.nominee-assignment {
+  display: flex;
+  min-width: min(100%, 300px);
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.nominee-assignment label {
+  min-width: 0;
+  flex: 1;
+}
+
+.nominee-assignment label small {
+  display: block;
+  margin-top: 4px;
+  color: var(--dash-muted);
+  font-size: 0.68rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.nominee-assignment button {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--dash-border);
+  border-radius: 12px;
+  background: var(--dash-glass);
+  color: var(--dash-text);
+  font: inherit;
+  font-size: 0.67rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.nominee-assignment button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.assignment-empty {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.asset-entry-form {
+  margin-top: var(--dash-space-5);
+  padding-top: var(--dash-space-4);
+  border-top: 1px solid var(--dash-border);
+}
+
+.asset-entry-form h3 {
+  margin: 0;
+  color: var(--dash-text);
+  font-size: 0.9rem;
+}
+
+.asset-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.asset-entry-fields {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.asset-entry-fields:disabled {
+  opacity: 0.65;
+}
+
+.dashboard-shell.light-theme .asset-entry-form input,
+.dashboard-shell.light-theme .asset-entry-form select,
+.dashboard-shell.light-theme .nominee-assignment select {
+  border-color: #9b8fab;
+  background: #fff;
+  color: #292722;
+}
+
+.dashboard-shell.light-theme .asset-entry-form input:focus,
+.dashboard-shell.light-theme .asset-entry-form select:focus,
+.dashboard-shell.light-theme .nominee-assignment select:focus {
+  border-color: #59457e;
+  box-shadow: 0 0 0 2px rgba(89, 69, 126, 0.18);
+}
+
+.vault-item-help {
+  margin: 0;
+  color: var(--dash-muted);
+  font-size: 0.72rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.dashboard-shell.light-theme .vault-item-help {
+  color: #4c4655;
+}
+
+.dashboard-shell.light-theme .vault-item-submit {
+  border: 1px solid #392e55;
+  background: #4f3f72;
+  color: #fff;
+}
+
+.dashboard-shell.light-theme .vault-item-submit:hover:not(:disabled) {
+  background: #382a57;
+  box-shadow: 0 8px 18px rgba(57, 46, 85, 0.3);
+}
+
+.dashboard-shell.light-theme .vault-item-submit:disabled {
+  border-color: #5d506f;
+  background: #716581;
+  opacity: 1;
+}
+
+.dashboard-shell.light-theme .vault-item-row {
+  border-color: #b9aec7;
+  background: #fff;
+}
+
+.dashboard-shell.light-theme .vault-item-row.is-editing {
+  border-color: #59457e;
+  box-shadow: 0 0 0 2px rgba(89, 69, 126, 0.14);
+}
+
+.dashboard-shell.light-theme .vault-item-row .asset-manager-title h3 {
+  color: #302b38;
+}
+
+.dashboard-shell.light-theme .vault-item-row .asset-manager-title p,
+.dashboard-shell.light-theme .vault-item-actions .credential-delete-confirm {
+  color: #4c4655;
+}
+
+.dashboard-shell.light-theme .vault-item-beneficiary span {
+  color: #62596c;
+}
+
+.dashboard-shell.light-theme .vault-item-beneficiary strong {
+  color: #302b38;
+}
+
+.dashboard-shell.light-theme .vault-item-actions .credential-action {
+  border-color: #7c708b;
+  background: #fff;
+  color: #302b38;
+}
+
+.dashboard-shell.light-theme .vault-item-actions .credential-action.is-danger {
+  border-color: #a5484b;
+  color: #8b2530;
+}
+
+.dashboard-shell.light-theme .vault-item-actions .credential-action:hover:not(:disabled) {
+  background: #f1edf6;
+}
+
+.dashboard-shell.light-theme .vault-item-actions .credential-action:focus-visible,
+.dashboard-shell.light-theme .vault-item-form-actions .credential-cancel-edit:focus-visible {
+  outline: 3px solid #59457e;
+  outline-offset: 2px;
+}
+
+.dashboard-shell.light-theme .credential-action,
+.dashboard-shell.light-theme .credential-cancel-edit,
+.dashboard-shell.light-theme .nominee-assignment button {
+  border-color: #9b8fab;
+  background: #fff;
+  color: #302b38;
+}
+
+.dashboard-shell.light-theme .credential-action.is-danger {
+  border-color: #b87980;
+  color: #8b2530;
+}
+
+.dashboard-shell.light-theme .credential-help,
+.dashboard-shell.light-theme .nominee-assignment label small {
+  color: #5f5a54;
+}
+
+.legacy-access-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  margin-top: var(--dash-space-4);
+}
+
+.legacy-access-row {
+  align-items: center;
+}
+
+.legacy-access-row > div {
+  display: grid;
+  gap: 3px;
+}
+
+.legacy-access-row strong {
+  color: var(--dash-text);
+  font-size: 0.78rem;
+}

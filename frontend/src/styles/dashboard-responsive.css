@@ -1,0 +1,152 @@
+@media (min-width: 641px) and (max-width: 760px) {
+  .dashboard-shell.reference-dashboard .trusted-circle {
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-shell.reference-dashboard .pulse-card {
+    height: auto;
+    min-height: 220px;
+  }
+
+  .dashboard-shell.reference-dashboard .hidden-keys-card {
+    height: auto;
+    min-height: 154px;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-shell .theme-toggle {
+    min-width: 108px;
+    gap: 6px;
+    padding: 0 9px;
+  }
+
+  .dashboard-shell .theme-toggle-label {
+    font-size: 0.62rem;
+  }
+
+  .dashboard-shell.reference-dashboard .trusted-circle,
+  .dashboard-shell.reference-dashboard .pulse-card,
+  .dashboard-shell.reference-dashboard .hidden-keys-card,
+  .dashboard-shell.reference-dashboard .capsules-card,
+  .dashboard-shell.reference-dashboard .ai-card,
+  .dashboard-shell.reference-dashboard .release-plan-card {
+    height: auto;
+    min-height: 0;
+  }
+
+  .feature-view {
+    gap: var(--dash-space-3);
+  }
+
+  .feature-overview {
+    gap: var(--dash-space-3);
+    padding: var(--dash-space-4);
+  }
+
+  .feature-overview-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 13px;
+  }
+
+  .feature-content-card {
+    padding: var(--dash-space-4);
+  }
+
+  .trusted-circle-layout,
+  .asset-entry-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trusted-edit-lock {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .trusted-quorum-form,
+  .legacy-access-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trusted-contact-card {
+    padding: 12px;
+  }
+
+  .asset-manager-row {
+    align-items: stretch;
+  }
+
+  .credential-actions {
+    width: 100%;
+  }
+
+  .credential-actions .credential-action {
+    flex: 1;
+  }
+
+  .nominee-assignment {
+    flex-wrap: wrap;
+  }
+
+  .nominee-assignment button {
+    flex: 1;
+  }
+
+  .assignment-empty {
+    white-space: normal;
+  }
+
+  .public-decision-card {
+    padding: 24px;
+  }
+
+  .feature-row {
+    align-items: flex-start;
+    padding: var(--dash-space-3);
+  }
+
+  .feature-row-status {
+    max-width: 78px;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .legacy-ai-points {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .release-summary {
+    gap: 8px;
+  }
+
+  .release-summary > div {
+    min-height: 100px;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 760px) {
+  .dashboard-shell.reference-dashboard .card-action-button {
+    gap: 5px;
+    padding-right: 9px;
+    padding-left: 9px;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 960px) {
+  .dashboard-shell.reference-dashboard .release-plan-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 961px) and (max-width: 1100px) {
+  .dashboard-shell.reference-dashboard .grid-bottom {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .dashboard-shell.reference-dashboard .release-plan-card {
+    grid-column: auto;
+  }
+}

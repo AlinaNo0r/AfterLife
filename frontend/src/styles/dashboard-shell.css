@@ -1,0 +1,196 @@
+.dashboard-shell {
+  --dash-space-1: 4px;
+  --dash-space-2: 8px;
+  --dash-space-3: 12px;
+  --dash-space-4: 16px;
+  --dash-space-5: 20px;
+  --dash-space-6: 24px;
+  --dash-space-7: 32px;
+  --dash-primary: #63568f;
+  --dash-primary-container: #b8a9e8;
+  --dash-primary-grad: linear-gradient(135deg, #63568f, #8f7dbf 58%, #b8a9e8);
+  --dash-surface: #0e0e12;
+  --dash-surface-low: #161620;
+  --dash-surface-lowest: #1e1e2a;
+  --dash-surface-high: #252535;
+  --dash-text: #e8e6f0;
+  --dash-muted: #9997aa;
+  --dash-border: rgba(184, 169, 232, 0.15);
+  --dash-glass: rgba(99, 86, 143, 0.15);
+  --dash-green: #6dbf8a;
+  --dash-yellow: #e07070;
+  --dash-action-bg: #514471;
+  --dash-action-hover: #41365f;
+  --dash-card-outline: rgba(184, 169, 232, 0.2);
+  height: 100vh;
+  min-height: 600px;
+  overflow: hidden;
+  background: var(--dash-surface);
+  color: var(--dash-text);
+}
+
+.dashboard-shell .sidebar {
+  width: 220px;
+  min-width: 220px;
+  height: 100vh;
+  padding: 28px 0 20px;
+  background: var(--dash-surface-low);
+  border-right: 1px solid var(--dash-border);
+}
+
+.dashboard-shell .sidebar-logo {
+  padding: 0 var(--dash-space-6) var(--dash-space-7);
+}
+
+.dashboard-shell .sidebar-logo h1 {
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+}
+
+.dashboard-shell .sidebar-logo p {
+  margin-top: var(--dash-space-1);
+  color: var(--dash-primary-container);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+}
+
+.dashboard-shell .nav {
+  gap: var(--dash-space-1);
+}
+
+.dashboard-shell .nav-item {
+  margin: var(--dash-space-1) var(--dash-space-3);
+  padding: var(--dash-space-3);
+  border-radius: var(--radius-pill);
+  color: var(--dash-muted);
+  font-size: 0.84rem;
+}
+
+.dashboard-shell .nav-item:hover {
+  background: var(--dash-glass);
+  color: var(--dash-text);
+}
+
+.dashboard-shell .nav-item.active {
+  background: var(--dash-primary);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(99, 86, 143, 0.4);
+}
+
+.dashboard-shell .sidebar-bottom {
+  padding: 0 16px;
+}
+
+.dashboard-shell .stay-alive-btn {
+  height: auto;
+  padding: 13px 10px;
+  margin-bottom: 14px;
+  background: var(--dash-primary-grad);
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+}
+
+.dashboard-shell .user-card {
+  padding: 10px;
+  background: var(--dash-surface-lowest);
+  border: 1px solid var(--dash-border);
+}
+
+.dashboard-shell .user-avatar {
+  flex: 0 0 36px;
+  background: var(--dash-primary-grad);
+}
+
+.dashboard-shell .user-info h4 {
+  color: var(--dash-text);
+}
+
+.dashboard-shell .user-info p {
+  color: var(--dash-green);
+}
+
+.sidebar-logout {
+  display: block;
+  margin: 9px auto 0;
+  padding: 5px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--dash-muted);
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+
+.sidebar-logout:hover {
+  color: var(--dash-text);
+}
+
+.dashboard-shell .main {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--dash-surface);
+  color: var(--dash-text);
+}
+
+.dashboard-shell .topbar {
+  flex: 0 0 auto;
+  padding: 16px 28px;
+  background: var(--dash-glass);
+  border-color: var(--dash-border);
+}
+
+.dashboard-shell .search-wrap {
+  max-width: 380px;
+}
+
+.dashboard-shell .search-input {
+  height: 42px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--dash-surface-lowest);
+  color: var(--dash-text);
+  font-size: 0.88rem;
+}
+
+.dashboard-shell .search-input::placeholder {
+  color: var(--dash-muted);
+}
+
+.dashboard-shell .search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(99, 86, 143, 0.45);
+}
+
+.dashboard-shell .icon-btn {
+  background: var(--dash-surface-lowest);
+  color: var(--dash-text);
+}
+
+.dashboard-shell .icon-btn:hover {
+  background: var(--dash-surface-high);
+}
+
+.dashboard-shell .avatar-btn {
+  background: var(--dash-primary-grad);
+  border: 2px solid var(--dash-primary-container);
+}
+
+.dashboard-shell .content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 30px 32px 38px;
+  scroll-behavior: smooth;
+}
+
+.dashboard-shell .content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dashboard-shell .content::-webkit-scrollbar-thumb {
+  background: var(--dash-surface-high);
+  border-radius: 4px;
+}

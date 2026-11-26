@@ -1,0 +1,264 @@
+.dashboard-shell .hero h2 {
+  color: var(--dash-text);
+  font-size: clamp(2.2rem, 3.7vw, 3.2rem);
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+}
+
+.dashboard-shell .hero h2 span {
+  background: var(--dash-primary-grad);
+  -webkit-text-fill-color: transparent;
+}
+
+.dashboard-shell .status-badge {
+  color: var(--dash-muted);
+}
+
+.dashboard-shell .status-dot {
+  background: var(--dash-green);
+  box-shadow: none;
+}
+
+.dashboard-shell .grid-main {
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: stretch;
+  gap: 20px;
+}
+
+.dashboard-shell .grid-bottom {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 300px;
+  align-items: stretch;
+}
+
+.dashboard-shell .side-cards {
+  gap: 16px;
+}
+
+.dashboard-shell .card {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--dash-card-outline, var(--dash-border));
+  border-radius: var(--radius-card);
+  background: var(--dash-surface-lowest);
+  color: var(--dash-text);
+  box-shadow: var(--shadow-sm);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.dashboard-shell .card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+}
+
+.dashboard-shell .card-label {
+  margin-bottom: 12px;
+  color: var(--dash-muted);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+}
+
+.dashboard-shell .card h3 {
+  color: var(--dash-text);
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.28;
+  margin: 0 0 var(--dash-space-2);
+}
+
+.dashboard-shell .card p {
+  margin: 0 0 var(--dash-space-3);
+  color: var(--dash-muted);
+  font-size: 0.83rem;
+  line-height: 1.55;
+}
+
+.dashboard-shell .trusted-circle {
+  min-height: 390px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.dashboard-shell .card-icon-wrap.purple {
+  background: var(--dash-glass);
+  color: var(--dash-primary-container);
+}
+
+.dashboard-shell .ta {
+  border-color: var(--dash-surface-lowest);
+}
+
+.dashboard-shell .ta.muted {
+  background: var(--dash-surface-high);
+  color: var(--dash-muted);
+}
+
+.dashboard-shell .pulse-card {
+  min-height: 210px;
+  justify-content: flex-start;
+  background: var(--dash-surface-lowest);
+}
+
+.dashboard-shell .pulse-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  background: rgba(224, 112, 112, 0.14);
+  color: var(--dash-yellow);
+}
+
+.dashboard-shell .update-sig-btn {
+  width: 100%;
+  margin-top: auto;
+  border-color: var(--dash-yellow);
+  color: var(--dash-yellow);
+}
+
+.dashboard-shell .update-sig-btn:hover:not(:disabled) {
+  background: var(--dash-yellow);
+  color: #17151b;
+}
+
+.dashboard-shell .update-sig-btn:disabled,
+.dashboard-shell .stay-alive-btn:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.dashboard-shell .hidden-keys-card {
+  min-height: 164px;
+  justify-content: center;
+}
+
+.dashboard-shell .keys-icon svg {
+  color: var(--dash-primary-container);
+}
+
+.dashboard-shell .keys-count {
+  color: var(--dash-text);
+  font-size: 2rem;
+  margin: 2px 0 6px;
+}
+
+.dashboard-shell .capsules-card,
+.dashboard-shell .ai-card,
+.dashboard-shell .neural-card {
+  min-height: 270px;
+}
+
+.dashboard-shell .capsules-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.vault-item-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.vault-item-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--dash-text);
+  font-size: 0.76rem;
+}
+
+.vault-item-preview span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-item-icon {
+  display: grid;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--dash-glass);
+  color: var(--dash-primary-container);
+}
+
+.dashboard-shell .ai-card {
+  background: linear-gradient(145deg, rgba(99, 86, 143, 0.24), var(--dash-surface-lowest) 75%);
+}
+
+.dashboard-shell .ai-card .card-label {
+  color: var(--dash-primary-container);
+}
+
+.dashboard-shell .ai-card h3 {
+  margin: 8px 0 12px;
+  font-size: 1.65rem;
+}
+
+.dashboard-shell .ai-btns {
+  margin-top: auto;
+}
+
+.dashboard-shell .ai-btn {
+  flex: initial;
+  width: 100%;
+  background: var(--dash-primary-grad);
+  color: #fff;
+}
+
+.dashboard-shell .neural-card {
+  justify-content: center;
+  border-color: rgba(184, 169, 232, 0.23);
+  background: linear-gradient(145deg, rgba(99, 86, 143, 0.2), var(--dash-surface-lowest));
+}
+
+.dashboard-shell .neural-visual {
+  flex: 0 0 132px;
+  width: 132px;
+  height: 132px;
+}
+
+.dashboard-shell .neural-visual::before,
+.dashboard-shell .neural-visual::after {
+  border-color: rgba(184, 169, 232, 0.32);
+}
+
+.dashboard-shell .neural-core {
+  background: radial-gradient(circle, rgba(184, 169, 232, 0.2), transparent 70%);
+  box-shadow: inset 0 0 30px rgba(184, 169, 232, 0.2), 0 0 32px rgba(184, 169, 232, 0.24);
+}
+
+.dashboard-shell .neural-core svg {
+  color: var(--dash-primary-container);
+  filter: drop-shadow(0 0 12px rgba(184, 169, 232, 0.75));
+}
+
+.dashboard-shell .progress-label {
+  width: 100%;
+  margin-bottom: 10px;
+  color: var(--dash-muted);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+}
+
+.dashboard-shell .progress-track {
+  background: rgba(184, 169, 232, 0.12);
+}
+
+.dashboard-shell .progress-fill {
+  background: var(--dash-primary-grad);
+}
+
+.dashboard-status,
+.dashboard-error {
+  margin-top: 16px;
+  color: var(--dash-green);
+  font-size: 0.82rem;
+}
+
+.dashboard-error {
+  color: #f09a9a;
+}

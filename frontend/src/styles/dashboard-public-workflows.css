@@ -1,0 +1,157 @@
+.public-decision-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 85% 20%, rgba(128, 116, 255, 0.12), transparent 28%),
+    var(--bg);
+}
+
+.public-decision-card {
+  width: min(100%, 520px);
+  padding: 32px;
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  background: var(--surface-low);
+  box-shadow: var(--shadow);
+}
+
+.public-decision-eyebrow {
+  margin-bottom: 12px;
+  color: var(--primary-container);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+}
+
+.public-decision-card h1 {
+  margin-bottom: 14px;
+  color: var(--on-surface);
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+}
+
+.public-decision-copy,
+.public-decision-message,
+.public-decision-result {
+  color: var(--on-surface-muted);
+  font-size: 0.84rem;
+  line-height: 1.7;
+}
+
+.public-decision-copy strong {
+  color: var(--on-surface);
+}
+
+.public-decision-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.public-decision-actions button {
+  min-height: 42px;
+  padding: 9px 15px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary-grad);
+  color: white;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.public-decision-actions .public-decline {
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--on-surface-muted);
+}
+
+.public-decision-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.public-decision-message,
+.public-decision-result {
+  margin-top: 18px;
+}
+
+.public-decision-link {
+  display: inline-block;
+  margin-top: 22px;
+  color: var(--lavender);
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.public-password-form {
+  display: grid;
+  gap: 14px;
+}
+
+.public-password-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--on-surface);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.public-password-form input {
+  min-height: 44px;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--on-surface);
+  padding: 9px 12px;
+}
+
+.public-password-form button {
+  min-height: 44px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary-grad);
+  color: white;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.public-password-form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.release-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.release-summary > div {
+  display: grid;
+  min-height: 118px;
+  justify-items: center;
+  align-content: center;
+  gap: 6px;
+  border: 1px solid var(--dash-border);
+  border-radius: 17px;
+  background: var(--dash-surface);
+  color: var(--dash-primary-container);
+}
+
+.release-summary strong {
+  color: var(--dash-text);
+  font-size: 1.35rem;
+}
+
+.release-summary span {
+  color: var(--dash-muted);
+  font-size: 0.68rem;
+}

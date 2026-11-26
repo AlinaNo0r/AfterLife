@@ -104,12 +104,20 @@ export function updateVaultItem(id, itemData) {
   return sendApiRequest(`/vault-items/${id}/`, itemData, { authenticated: true, method: 'PATCH', multipart: true })
 }
 
+export function deleteVaultItem(id) {
+  return sendApiRequest(`/vault-items/${id}/`, undefined, { authenticated: true, method: 'DELETE' })
+}
+
 export function createCredential(credentialData) {
   return sendApiRequest('/api/credentials/', credentialData, { authenticated: true })
 }
 
 export function updateCredential(id, credentialData) {
   return sendApiRequest(`/api/credentials/${id}/`, credentialData, { authenticated: true, method: 'PATCH' })
+}
+
+export function deleteCredential(id) {
+  return sendApiRequest(`/api/credentials/${id}/`, undefined, { authenticated: true, method: 'DELETE' })
 }
 
 export function getLegacyAIAccess() {

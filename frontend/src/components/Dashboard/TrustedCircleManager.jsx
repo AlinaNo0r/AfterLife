@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Mail, Plus, ShieldCheck, Trash2, UsersRound } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Mail, ShieldCheck, Trash2, UsersRound } from 'lucide-react'
+import DashboardFeedbackToast from './DashboardFeedbackToast.jsx'
 
 const ROLE_OPTIONS = [
   { value: 'beneficiary', label: 'Beneficiary', description: 'May receive assigned legacy assets' },
@@ -25,9 +26,10 @@ function TrustedCircleManager({
   onUpdate,
   onDelete,
   onResend,
-  onUpdateQuorum,
+  onSaveRequiredPeopleCount,
   onStayAlive,
   isCheckingIn,
+  isLightTheme = false,
 }) {
   const [form, setForm] = useState({
     nominee_name: '',
@@ -38,11 +40,23 @@ function TrustedCircleManager({
   })
   const [editingId, setEditingId] = useState(null)
   const [editingRoles, setEditingRoles] = useState([])
-  const [quorumDraft, setQuorumDraft] = useState(null)
-  const quorumValue = quorumDraft ?? String(settings?.witness_quorum || 2)
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
+  const [requiredPeopleDraft, setRequiredPeopleDraft] = useState(null)
+  const requiredPeopleCount = requiredPeopleDraft ?? String(settings?.witness_quorum || 2)
+  const peopleWhoAcceptedRole = settings?.accepted_witnesses || 0
+  const [feedback, setFeedback] = useState(null)
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (!feedback) return undefined
+
+    const timeoutId = window.setTimeout(() => {
+      setFeedback(null)
+    }, feedback.tone === 'success' ? 5000 : 8000)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [feedback])
+
+  const dismissFeedback = () => setFeedback(null)
 
   const toggleRole = (role, current, update) => {
     update(current.includes(role)
@@ -52,9 +66,9 @@ function TrustedCircleManager({
 
   const handleCreate = async (event) => {
     event.preventDefault()
-    setError('')
-    setMessage('')
+    setFeedback(null)
     setBusy(true)
+    const contactName = form.nominee_name.trim()
     try {
       const result = await onCreate(form)
       setForm({
@@ -64,74 +78,122 @@ function TrustedCircleManager({
         relationship: 'friend',
         roles: [],
       })
-      setMessage(result.invitation_sent
-        ? 'Contact added. Role invitations were sent.'
-        : 'Contact saved, but at least one invitation could not be sent. Retry it below.')
+      setFeedback(result.invitation_sent
+        ? {
+          tone: 'success',
+          title: 'Contact added',
+          message: `Added ${contactName} to your Trusted Circle. We sent the invitation email.`,
+        }
+        : {
+          tone: 'warning',
+          title: 'Contact added, invitation not sent',
+          message: `Added ${contactName}, but we couldn't send the invitation email. You can retry from the contact card.`,
+        })
     } catch (requestError) {
-      setError(requestError.message)
+      setFeedback({
+        tone: 'error',
+        title: 'Contact could not be added',
+        message: requestError.message || 'Please check the details and try again.',
+      })
     } finally {
       setBusy(false)
     }
   }
 
   const handleRoleSave = async (nominee) => {
-    setError('')
-    setMessage('')
+    setFeedback(null)
     setBusy(true)
     try {
       const result = await onUpdate(nominee.id, { roles: editingRoles })
       setEditingId(null)
-      setMessage(result.invitation_sent === false
-        ? 'Roles saved, but an invitation could not be sent. Retry it below.'
-        : 'Contact roles updated.')
+      setFeedback(result.invitation_sent === false
+        ? {
+          tone: 'warning',
+          title: 'Roles updated, invitation not sent',
+          message: 'We couldn’t send the invitation email. You can retry from the contact card.',
+        }
+        : {
+          tone: 'success',
+          title: 'Roles updated',
+          message: 'Your contact’s Trusted Circle roles have been updated.',
+        })
     } catch (requestError) {
-      setError(requestError.message)
+      setFeedback({
+        tone: 'error',
+        title: 'Roles could not be updated',
+        message: requestError.message || 'Please try again.',
+      })
     } finally {
       setBusy(false)
     }
   }
 
   const handleDelete = async (nominee) => {
-    setError('')
-    setMessage('')
+    setFeedback(null)
     setBusy(true)
     try {
       await onDelete(nominee.id)
-      setMessage(`${nominee.nominee_name} was removed from your circle.`)
+      setFeedback({
+        tone: 'success',
+        title: 'Contact removed',
+        message: `${nominee.nominee_name} is no longer in your Trusted Circle.`,
+      })
     } catch (requestError) {
-      setError(requestError.message)
+      setFeedback({
+        tone: 'error',
+        title: 'Contact could not be removed',
+        message: requestError.message || 'Please try again.',
+      })
     } finally {
       setBusy(false)
     }
   }
 
   const handleResend = async (nominee) => {
-    setError('')
-    setMessage('')
+    setFeedback(null)
     setBusy(true)
     try {
       const result = await onResend(nominee.id)
-      setMessage(result.invitation_sent
-        ? 'Pending role invitations were sent.'
-        : 'One or more invitations could not be sent. Try again later.')
+      setFeedback(result.invitation_sent
+        ? {
+          tone: 'success',
+          title: 'Invitation sent',
+          message: `We sent an invitation email to ${nominee.nominee_name}.`,
+        }
+        : {
+          tone: 'warning',
+          title: 'Invitation not sent',
+          message: 'We couldn’t send the invitation email. Please try again later.',
+        })
     } catch (requestError) {
-      setError(requestError.message)
+      setFeedback({
+        tone: 'error',
+        title: 'Invitation could not be sent',
+        message: requestError.message || 'Please try again.',
+      })
     } finally {
       setBusy(false)
     }
   }
 
-  const handleQuorumSave = async (event) => {
+  const handleSaveRequiredPeople = async (event) => {
     event.preventDefault()
-    setError('')
-    setMessage('')
+    setFeedback(null)
     setBusy(true)
     try {
-      await onUpdateQuorum(Number(quorumValue))
-      setQuorumDraft(null)
-      setMessage('Witness quorum saved.')
+      await onSaveRequiredPeopleCount(Number(requiredPeopleCount))
+      setRequiredPeopleDraft(null)
+      setFeedback({
+        tone: 'success',
+        title: 'Confirmation setting saved',
+        message: `${requiredPeopleCount} trusted people must confirm before assets can be shared.`,
+      })
     } catch (requestError) {
-      setError(requestError.message)
+      setFeedback({
+        tone: 'error',
+        title: 'Confirmation setting could not be saved',
+        message: requestError.message || 'Please try again.',
+      })
     } finally {
       setBusy(false)
     }
@@ -139,6 +201,28 @@ function TrustedCircleManager({
 
   return (
     <div className="trusted-circle-layout">
+      {settings?.quorum_frozen && (
+        <aside className="trusted-edit-lock" role="status">
+          <div>
+            <strong>{settings.status === 'released' ? 'Editing is permanently locked' : 'Editing is paused'}</strong>
+            <p>
+              {settings.status === 'released'
+                ? 'Your legacy has already been released, so Trusted Circle changes can no longer be made.'
+                : `Your account is ${settings.status}. Confirm your status to unlock adding and changing contacts.`}
+            </p>
+          </div>
+          {settings.status !== 'released' && onStayAlive && (
+            <button
+              className="feature-primary-action"
+              type="button"
+              onClick={onStayAlive}
+              disabled={isCheckingIn}
+            >
+              {isCheckingIn ? 'Confirming status…' : 'Confirm status to unlock editing'}
+            </button>
+          )}
+        </aside>
+      )}
       <section className="feature-content-card trusted-circle-list">
         <div className="feature-content-heading">
           <div>
@@ -287,9 +371,14 @@ function TrustedCircleManager({
               </label>
             ))}
           </fieldset>
-          <button className="feature-primary-action" type="submit" disabled={busy || form.roles.length === 0 || settings?.quorum_frozen}>
-            <Plus size={16} aria-hidden="true" />
-            {busy ? 'Sending…' : 'Add contact and send invitations'}
+          <button className="feature-primary-action trusted-add-submit" type="submit" disabled={busy || form.roles.length === 0 || settings?.quorum_frozen}>
+            {busy
+              ? 'Sending…'
+              : settings?.quorum_frozen
+                ? 'Editing is paused'
+                : form.roles.length === 0
+                  ? 'Choose a role to continue'
+                  : 'Add contact and send invitations'}
           </button>
         </form>
       </section>
@@ -297,58 +386,39 @@ function TrustedCircleManager({
       <section className="feature-content-card trusted-quorum-card">
         <div className="feature-content-heading">
           <div>
-            <p className="feature-eyebrow">RELEASE SAFEGUARD</p>
-            <h2>Witness quorum</h2>
+            <p className="feature-eyebrow">BEFORE SHARING YOUR LEGACY</p>
+            <h2>People who can confirm your passing</h2>
           </div>
           <ShieldCheck size={23} aria-hidden="true" />
         </div>
         <p className="feature-supporting-copy">
-          At least two accepted witnesses must confirm death. The quorum is frozen
-          when a warning begins, and inactivity alone never releases assets.
+          Choose how many trusted people must confirm your passing before your
+          assigned assets are shared. Missing a check-in alone will never share
+          your assets. This number locks when a check-in warning starts.
         </p>
-        <form className="trusted-quorum-form" onSubmit={handleQuorumSave}>
-          <label htmlFor="witness-quorum">Required confirmations</label>
+        <form className="trusted-quorum-form" onSubmit={handleSaveRequiredPeople}>
+          <label htmlFor="required-confirmations">How many people must confirm?</label>
           <input
-            id="witness-quorum"
+            id="required-confirmations"
             type="number"
             min="2"
             max="20"
-            value={quorumValue}
-            onChange={(event) => setQuorumDraft(event.target.value)}
+            value={requiredPeopleCount}
+            onChange={(event) => setRequiredPeopleDraft(event.target.value)}
             disabled={settings?.quorum_frozen}
           />
-          <button type="submit" disabled={busy || settings?.quorum_frozen}>Save quorum</button>
+          <button type="submit" disabled={busy || settings?.quorum_frozen}>Save number</button>
         </form>
         <p className={`trusted-readiness${settings?.ready ? ' is-ready' : ''}`}>
-          {settings?.accepted_witnesses || 0} accepted witness
-          {(settings?.accepted_witnesses || 0) === 1 ? '' : 'es'} of {settings?.witness_quorum || 2} required
+          {peopleWhoAcceptedRole} of {settings?.witness_quorum || 2} trusted people
+          {' '}have accepted the confirmation role.
         </p>
-        {settings?.quorum_frozen && (
-          <>
-            <p className="trusted-quorum-note">
-              {settings.status === 'released'
-                ? 'Your legacy has been released, so Trusted Circle changes are permanently locked.'
-                : `Trusted Circle changes are locked while your account is ${settings.status}.`}
-            </p>
-            {settings.status !== 'released' && onStayAlive && (
-              <button
-                className="feature-primary-action"
-                type="button"
-                onClick={onStayAlive}
-                disabled={isCheckingIn}
-              >
-                {isCheckingIn ? 'Confirming status…' : 'Confirm status to unlock editing'}
-              </button>
-            )}
-          </>
-        )}
       </section>
-
-      {(message || error) && (
-        <p className={`trusted-feedback${error ? ' is-error' : ''}`} role={error ? 'alert' : 'status'}>
-          {error || message}
-        </p>
-      )}
+      <DashboardFeedbackToast
+        feedback={feedback}
+        isLightTheme={isLightTheme}
+        onDismiss={dismissFeedback}
+      />
     </div>
   )
 }

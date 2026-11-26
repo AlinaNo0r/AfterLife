@@ -31,9 +31,9 @@ const FEATURES = {
   'memory-capsules': {
     icon: FileText,
     eyebrow: 'YOUR MEMORIES',
-    title: 'Memory Capsules',
+    title: 'Vault Items',
     description:
-      'Preserve personal files and choose how and when each capsule should be shared.',
+      'Preserve personal files and choose whether each item is shared after confirmed passing, on a specific date, or on a recurring schedule.',
   },
   'legacy-ai': {
     icon: MessageCircleHeart,
@@ -54,7 +54,7 @@ const FEATURES = {
     eyebrow: 'WHEN TO SHARE',
     title: 'Release Plan',
     description:
-      'Review the release timing and current status of the memory capsules you have saved.',
+      'Review the release timing and current status of the vault items you have saved.',
   },
 };
 
@@ -85,14 +85,26 @@ function FeatureRows({ rows, icon: RowIcon, emptyMessage }) {
   );
 }
 
-function HiddenKeysDetails({ credentials = [], nominees, onCreateCredential, onAssignCredential, locked }) {
+function HiddenKeysDetails({
+  credentials = [],
+  nominees,
+  isLightTheme,
+  onCreateCredential,
+  onAssignCredential,
+  onUpdateCredential,
+  onDeleteCredential,
+  locked,
+}) {
   return (
     <CredentialsManager
       credentials={credentials}
       nominees={nominees}
       onCreate={onCreateCredential}
       onAssign={onAssignCredential}
+      onUpdate={onUpdateCredential}
+      onDelete={onDeleteCredential}
       locked={locked}
+      isLightTheme={isLightTheme}
     />
   );
 }
@@ -101,27 +113,43 @@ function CapsuleRows({ items = [] }) {
   return (
     <FeatureRows
       icon={FileText}
-      emptyMessage="No memory capsules have been saved yet."
+      emptyMessage="No vault items have been saved yet."
       rows={items.map((item) => ({
         id: item.id,
-        title: item.title || 'Memory capsule',
-        description: item.scheduled_date
-          ? `Release date: ${new Date(item.scheduled_date).toLocaleDateString()}`
-          : `Release rule: ${item.release_type || 'Not specified'}`,
-        status: item.is_sent ? 'Released' : 'Saved',
+        title: item.title || 'Vault item',
+        description: item.release_type === 'scheduled'
+          ? `Scheduled for ${item.scheduled_date || 'a selected date'}`
+          : item.release_type === 'recurring'
+            ? `Starts ${item.scheduled_date || 'on a selected date'} · repeats every ${item.recurring_interval_days || 'set'} days`
+            : 'Shared after required witnesses confirm passing',
+        status: item.is_sent
+          ? 'Released'
+          : item.last_sent_at
+            ? 'Recurring'
+            : 'Saved',
       }))}
     />
   );
 }
 
-function MemoryCapsulesDetails({ items = [], nominees, onCreateCapsule, onAssignCapsule, locked }) {
+function MemoryCapsulesDetails({
+  items = [],
+  nominees,
+  isLightTheme,
+  onCreateCapsule,
+  onUpdateCapsule,
+  onDeleteCapsule,
+  locked,
+}) {
   return (
     <MemoryCapsuleManager
       items={items}
       nominees={nominees}
       onCreate={onCreateCapsule}
-      onAssign={onAssignCapsule}
+      onUpdate={onUpdateCapsule}
+      onDelete={onDeleteCapsule}
       locked={locked}
+      isLightTheme={isLightTheme}
     />
   );
 }
@@ -213,7 +241,7 @@ function ReleasePlanDetails({ items = [] }) {
           <div>
             <FileText size={20} aria-hidden="true" />
             <strong>{items.length}</strong>
-            <span>capsules</span>
+            <span>vault items</span>
           </div>
         </div>
       </section>
@@ -221,7 +249,7 @@ function ReleasePlanDetails({ items = [] }) {
         <div className="feature-content-heading">
           <div>
             <p className="feature-eyebrow">RELEASE INSTRUCTIONS</p>
-            <h2>Capsule schedule</h2>
+            <h2>Vault item schedule</h2>
           </div>
         </div>
         <CapsuleRows items={items} />
@@ -237,15 +265,19 @@ export default function DashboardFeatureView({
   items,
   trustedCircleSettings,
   legacyAIAccess,
+  isLightTheme,
   onCreateNominee,
   onUpdateNominee,
   onDeleteNominee,
   onResendInvitation,
-  onUpdateQuorum,
+  onSaveRequiredPeopleCount,
   onCreateCredential,
   onAssignCredential,
+  onUpdateCredential,
+  onDeleteCredential,
   onCreateCapsule,
-  onAssignCapsule,
+  onUpdateCapsule,
+  onDeleteCapsule,
   onAssignLegacyAI,
   onRemoveLegacyAI,
   lastPulse,
@@ -302,11 +334,12 @@ export default function DashboardFeatureView({
         <TrustedCircleManager
           nominees={nominees}
           settings={trustedCircleSettings}
+          isLightTheme={isLightTheme}
           onCreate={onCreateNominee}
           onUpdate={onUpdateNominee}
           onDelete={onDeleteNominee}
           onResend={onResendInvitation}
-          onUpdateQuorum={onUpdateQuorum}
+          onSaveRequiredPeopleCount={onSaveRequiredPeopleCount}
           onStayAlive={onStayAlive}
           isCheckingIn={isCheckingIn}
         />
@@ -315,8 +348,11 @@ export default function DashboardFeatureView({
         <HiddenKeysDetails
           credentials={credentials}
           nominees={acceptedBeneficiaries}
+          isLightTheme={isLightTheme}
           onCreateCredential={onCreateCredential}
           onAssignCredential={onAssignCredential}
+          onUpdateCredential={onUpdateCredential}
+          onDeleteCredential={onDeleteCredential}
           locked={planLocked}
         />
       )}
@@ -324,8 +360,10 @@ export default function DashboardFeatureView({
         <MemoryCapsulesDetails
           items={items}
           nominees={acceptedBeneficiaries}
+          isLightTheme={isLightTheme}
           onCreateCapsule={onCreateCapsule}
-          onAssignCapsule={onAssignCapsule}
+          onUpdateCapsule={onUpdateCapsule}
+          onDeleteCapsule={onDeleteCapsule}
           locked={planLocked}
         />
       )}

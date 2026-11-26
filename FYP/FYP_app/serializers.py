@@ -219,7 +219,7 @@ class CredentialsSerializer(serializers.ModelSerializer):
             'password',
             'username_on_platform',
             'email_on_platform',
-            'password',             # 👈 Here, The password field was missing...
+            'password',
             'nominee_details',
             'assigned_nominee_id'
         ]
@@ -393,17 +393,26 @@ class VaultItemSerializer(serializers.ModelSerializer):
         if release_type is None and self.instance:
             release_type = self.instance.release_type
 
-        if release_type == 'scheduled' and not data.get('scheduled_date'):
+        scheduled_date = data.get(
+            'scheduled_date',
+            getattr(self.instance, 'scheduled_date', None),
+        )
+        recurring_interval_days = data.get(
+            'recurring_interval_days',
+            getattr(self.instance, 'recurring_interval_days', None),
+        )
+
+        if release_type == 'scheduled' and not scheduled_date:
             raise serializers.ValidationError(
                 {"scheduled_date": "Release Date is Required."}
             )
 
         if release_type == 'recurring':
-            if not data.get('scheduled_date'):
+            if not scheduled_date:
                 raise serializers.ValidationError(
                     {"scheduled_date": "Release Date is Required!"}
                 )
-            if not data.get('recurring_interval_days'):
+            if not recurring_interval_days:
                 raise serializers.ValidationError(
                     {"recurring_interval_days": "Recurring release requires interval(days)!"}
                 )
