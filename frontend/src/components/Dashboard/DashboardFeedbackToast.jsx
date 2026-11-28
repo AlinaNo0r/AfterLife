@@ -1,32 +1,14 @@
-import { createPortal } from 'react-dom'
+import { useEffect } from 'react'
+import { showAppToast } from '../../services/toastService.js'
 
 function DashboardFeedbackToast({ feedback, isLightTheme = false, onDismiss }) {
-  if (!feedback) return null
+  useEffect(() => {
+    if (!feedback) return
+    showAppToast(feedback.message, feedback.tone, feedback.title, isLightTheme)
+    onDismiss?.()
+  }, [feedback, isLightTheme, onDismiss])
 
-  return createPortal(
-    <div className={`toast dashboard-feedback-toast is-${feedback.tone}${isLightTheme ? ' is-light' : ''}`}>
-      <span className="dashboard-feedback-indicator" aria-hidden="true">
-        {feedback.tone === 'success' ? '✓' : '!'}
-      </span>
-      <div
-        className="dashboard-feedback-copy"
-        role={feedback.tone === 'error' ? 'alert' : 'status'}
-        aria-atomic="true"
-      >
-        <strong>{feedback.title}</strong>
-        <p>{feedback.message}</p>
-      </div>
-      <button
-        type="button"
-        className="dashboard-feedback-dismiss"
-        onClick={onDismiss}
-        aria-label="Dismiss notification"
-      >
-        ×
-      </button>
-    </div>,
-    document.body,
-  )
+  return null
 }
 
 export default DashboardFeedbackToast

@@ -13,16 +13,26 @@ logger = logging.getLogger(__name__)
 token_generator = PasswordResetTokenGenerator()
 
 
-def send_release_notification_email(nominee, item_count):
+def send_release_notification_email(nominee, item_count, legacy_ai_available=False):
     login_account = nominee.login_account
+    released_content = []
+    if item_count:
+        released_content.append(f'{item_count} item(s) are now accessible.')
+    if legacy_ai_available:
+        chat_url = f'{settings.FRONTEND_URL}/beneficiary/legacy-chat'
+        released_content.append(
+            'Legacy AI access is available after you sign in and review the third-party '
+            f'data-processing notice:\n{chat_url}'
+        )
+    released_summary = '\n\n'.join(released_content)
     if login_account:
         uid = urlsafe_base64_encode(force_bytes(login_account.pk))
         token = token_generator.make_token(login_account)
         set_password_link = f"{settings.FRONTEND_URL}/set-password/{uid}/{token}/"
         message = (
             f"Dear {nominee.nominee_name},\n\n"
-            "The assets entrusted to you have now been released.\n"
-            f"{item_count} item(s) are now accessible.\n\n"
+            "The items or Legacy AI access entrusted to you are now available.\n"
+            f"{released_summary}\n\n"
             "Set your password using this link:\n"
             f"{set_password_link}\n\n"
             "Digital Vault Team"
@@ -30,8 +40,8 @@ def send_release_notification_email(nominee, item_count):
     else:
         message = (
             f"Dear {nominee.nominee_name},\n\n"
-            "The assets entrusted to you have now been released.\n"
-            f"{item_count} item(s) are now accessible.\n\n"
+            "The items or Legacy AI access entrusted to you are now available.\n"
+            f"{released_summary}\n\n"
             "Please log in to view them.\n\n"
             "Digital Vault Team"
         )

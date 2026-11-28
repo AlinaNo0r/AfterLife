@@ -2,7 +2,7 @@ from django.http import FileResponse
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 from django.utils import timezone
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.views.decorators.csrf import csrf_exempt
 import secrets
 
@@ -147,11 +147,13 @@ class LoginView(APIView):
 
         refresh = RefreshToken.for_user(user)
         profile = getattr(user, 'profile', None)
+        is_nominee_account = Nominee.objects.filter(login_account=user).exists()
 
         return Response({
             'access': str(refresh.access_token),
             'refresh': str(refresh),
             'onboarding_completed': getattr(profile, 'onboarding_completed', False),
+            'is_nominee_account': is_nominee_account,
             'user': {
                 'id': user.id,
                 'email': user.email,
@@ -542,7 +544,13 @@ class NomineeViewSet(viewsets.ModelViewSet):
         _require_active_legacy_plan(request.user)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        nominee = serializer.save()
+        try:
+            nominee = serializer.save()
+        except IntegrityError:
+            return Response(
+                {'error': 'This contact email is already linked to another account. Check your Trusted Circle and try again.'},
+                status=status.HTTP_409_CONFLICT,
+            )
         invitations = send_pending_role_invitations(
             nominee,
             request.user.get_full_name() or request.user.email,
@@ -563,7 +571,13 @@ class NomineeViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
-        nominee = serializer.save()
+        try:
+            nominee = serializer.save()
+        except IntegrityError:
+            return Response(
+                {'error': 'This contact email is already linked to another account. Check your Trusted Circle and try again.'},
+                status=status.HTTP_409_CONFLICT,
+            )
         invitations = send_pending_role_invitations(
             nominee,
             request.user.get_full_name() or request.user.email,

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { submitWitnessVote } from '../../services/authService.js'
+import { showAppToast } from '../../services/toastService.js'
 
 function WitnessConfirmationPage() {
   const { token } = useParams()
@@ -15,6 +16,7 @@ function WitnessConfirmationPage() {
       const result = await submitWitnessVote(token, choice)
       setDecision(choice)
       setMessage(result.message)
+      showAppToast(result.message, 'success', 'Witness response recorded')
     } catch (error) {
       setMessage(error.message)
     } finally {

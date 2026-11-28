@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { resendRegistrationCode, verifyRegistrationCode } from '../../services/authService.js'
+import { showAppToast } from '../../services/toastService.js'
 
 function EmailVerificationPage() {
   const location = useLocation()
@@ -41,6 +42,7 @@ function EmailVerificationPage() {
     try {
       const data = await resendRegistrationCode(email)
       setMessage(data.message)
+      showAppToast(data.message, 'success', 'Verification code sent')
     } catch (error) {
       setMessage(error.message || 'Could not send a new code. Please try again.')
     } finally {

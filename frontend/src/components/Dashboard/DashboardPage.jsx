@@ -42,6 +42,7 @@ import {
   TrustedCircleCard,
 } from './DashboardCards.jsx'
 import DashboardFeatureView from './DashboardFeatureView.jsx'
+import { showAppToast } from '../../services/toastService.js'
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -73,7 +74,6 @@ function DashboardPage() {
   const [legacyAIAccess, setLegacyAIAccess] = useState([])
   const [loading, setLoading] = useState(true)
   const [lastPulse, setLastPulse] = useState(null)
-  const [notice, setNotice] = useState('')
   const [isCheckingIn, setIsCheckingIn] = useState(false)
   const [theme, setTheme] = useState(() => (
     localStorage.getItem('dashboardTheme') === 'light' ? 'light' : 'dark'
@@ -102,7 +102,7 @@ function DashboardPage() {
       if (!isMounted) return
 
       if (userResult.status === 'fulfilled') setUser(userResult.value)
-      else setNotice(userResult.reason?.message || 'Could not load your account.')
+      else showAppToast(userResult.reason?.message || 'Could not load your account.', 'error', 'Account')
 
       setNominees(nomineesResult.status === 'fulfilled' ? getList(nomineesResult.value) : [])
       setCredentials(credentialsResult.status === 'fulfilled' ? getList(credentialsResult.value) : [])
@@ -110,7 +110,7 @@ function DashboardPage() {
       setTrustedCircleSettings(settingsResult.status === 'fulfilled' ? settingsResult.value : null)
       setLegacyAIAccess(legacyAIAccessResult.status === 'fulfilled' ? getList(legacyAIAccessResult.value) : [])
       if (nomineesResult.status === 'rejected') {
-        setNotice(nomineesResult.reason?.message || 'Could not load your trusted contacts.')
+        showAppToast(nomineesResult.reason?.message || 'Could not load your trusted contacts.', 'error', 'Trusted Circle')
       }
       setLoading(false)
     }
@@ -137,16 +137,15 @@ function DashboardPage() {
 
   const handleStayAlive = async () => {
     setIsCheckingIn(true)
-    setNotice('')
     try {
       const response = await sendStayAlive()
       setLastPulse(response.last_seen)
       setTrustedCircleSettings((current) => current
         ? { ...current, status: 'active', quorum_frozen: false }
         : current)
-      setNotice(response.message || 'Check-in received. Your vault is active.')
+      showAppToast(response.message || 'Check-in received. Your vault is active.', 'success', 'Check-in')
     } catch (error) {
-      setNotice(error.message || 'Could not update your check-in.')
+      showAppToast(error.message || 'Could not update your check-in.', 'error', 'Check-in failed')
     } finally {
       setIsCheckingIn(false)
     }
@@ -308,7 +307,7 @@ function DashboardPage() {
                 {theme === 'dark' ? 'Light mode' : 'Dark mode'}
               </span>
             </button>
-            <button type="button" className="icon-btn" title="Notifications" aria-label="Notifications" onClick={() => setNotice('You are all caught up.')}>
+            <button type="button" className="icon-btn" title="Notifications" aria-label="Notifications" onClick={() => showAppToast('You are all caught up.', 'info', 'Notifications')}>
               <Bell size={18} strokeWidth={1.8} aria-hidden="true" />
             </button>
             <button type="button" className="avatar-btn" title="Log out" aria-label={`Log out ${fullName}`} onClick={handleLogout}>{initials}</button>
@@ -380,12 +379,6 @@ function DashboardPage() {
                 />
               </div>
             </section>
-          )}
-          {notice && (
-            <div className="toast show" role="status" onClick={() => setNotice('')}>
-              <div className="toast-icon success"><span aria-hidden="true">✓</span></div>
-              <div className="toast-text"><h5>Digital Vault</h5><p>{notice}</p></div>
-            </div>
           )}
         </div>
       </main>

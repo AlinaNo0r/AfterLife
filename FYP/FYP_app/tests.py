@@ -220,6 +220,53 @@ class TrustedCircleTests(TestCase):
 			'contact@example.com',
 		)
 
+	def test_duplicate_contact_email_is_rejected_without_server_error(self):
+		first = self._invite('duplicate@example.com', ['witness'])
+		self.assertEqual(first.status_code, 201)
+
+		duplicate = self._invite('DUPLICATE@example.com', ['beneficiary'])
+
+		self.assertEqual(duplicate.status_code, 400)
+		self.assertIn('nominee_email', duplicate.data)
+		self.assertEqual(
+			Nominee.objects.filter(user=self.owner, nominee_email__iexact='duplicate@example.com').count(),
+			1,
+		)
+
+	def test_role_update_rejects_an_email_linked_to_another_beneficiary(self):
+		linked = self._invite('shared@example.com', ['beneficiary'])
+		self.assertEqual(linked.status_code, 201)
+
+		other_owner = User.objects.create_user(
+			username='other-circle-owner@example.com',
+			email='other-circle-owner@example.com',
+			password='StrongPass1!',
+		)
+		UserProfile.objects.create(user=other_owner)
+		other_contact = Nominee.objects.create(
+			user=other_owner,
+			nominee_name='Shared Contact',
+			nominee_email='shared@example.com',
+			nominee_phone='',
+			relationship='friend',
+		)
+		NomineeRole.objects.create(
+			nominee=other_contact,
+			role='witness',
+			consent_status='pending',
+		)
+		self.client.force_authenticate(user=other_owner)
+
+		response = self.client.patch(
+			f'/nominees/{other_contact.id}/',
+			{'roles': ['witness', 'beneficiary']},
+			format='json',
+		)
+
+		self.assertEqual(response.status_code, 400)
+		self.assertIn('nominee_email', response.data)
+		self.assertFalse(other_contact.roles.filter(role='beneficiary').exists())
+
 	def test_credentials_require_an_accepted_beneficiary_owned_by_the_user(self):
 		response = self._invite('pending@example.com', ['beneficiary'])
 		self.assertEqual(response.status_code, 201)

@@ -5,7 +5,14 @@ from django.db import transaction
 from django.utils import timezone
 
 from FYP_app.emails import send_nominee_verification_email
-from FYP_app.models import Credentials, Nominee, NomineeRole, UserProfile, VaultItem
+from FYP_app.models import (
+    Credentials,
+    LegacyAIAccess,
+    Nominee,
+    NomineeRole,
+    UserProfile,
+    VaultItem,
+)
 
 from .services import send_release_notification_email
 
@@ -46,14 +53,22 @@ def _release_accepted_beneficiary_assets(profile):
             release_type='killswitch',
         )
         released_count = credentials.count() + vault_items.count()
+        legacy_ai_available = LegacyAIAccess.objects.filter(
+            user=profile.user,
+            nominee=nominee,
+        ).exists()
         credentials.update(status='released')
         vault_items.update(is_sent=True)
-        if released_count:
-            release_notifications.append((nominee, released_count))
+        if released_count or legacy_ai_available:
+            release_notifications.append((nominee, released_count, legacy_ai_available))
 
     def notify_beneficiaries():
-        for nominee, item_count in release_notifications:
-            send_release_notification_email(nominee, item_count)
+        for nominee, item_count, legacy_ai_available in release_notifications:
+            send_release_notification_email(
+                nominee,
+                item_count,
+                legacy_ai_available=legacy_ai_available,
+            )
 
     transaction.on_commit(notify_beneficiaries)
 
@@ -81,7 +96,7 @@ def record_witness_vote(vote_token, decision):
     if role.vote:
         if role.vote == decision:
             return {
-                'message': 'Your vote has been recorded.',
+                'message': 'Your vote has already been recorded.',
                 'status': profile.status,
                 'vote': role.vote,
             }, 200

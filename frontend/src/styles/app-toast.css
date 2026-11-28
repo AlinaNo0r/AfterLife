@@ -1,0 +1,132 @@
+.app-toast-stack {
+  position: fixed;
+  z-index: 1600;
+  top: 88px;
+  right: 24px;
+  display: grid;
+  width: min(440px, calc(100vw - 32px));
+  gap: 10px;
+  pointer-events: none;
+}
+
+.app-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(200, 202, 220, 0.22);
+  border-radius: 14px;
+  background: #1b2030;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.3);
+  color: #f3f0e9;
+  pointer-events: auto;
+  animation: app-toast-enter 180ms ease-out;
+}
+
+.app-toast-indicator {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(165, 152, 255, 0.16);
+  color: #c5b9ff;
+  font-weight: 750;
+}
+
+.app-toast-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.app-toast-copy strong {
+  display: block;
+  font-size: 0.82rem;
+}
+
+.app-toast-copy p {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.app-toast > button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.app-toast > button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.app-toast.is-success .app-toast-indicator {
+  background: rgba(104, 217, 166, 0.14);
+  color: #6fe0a2;
+}
+
+.app-toast.is-error .app-toast-indicator {
+  background: rgba(255, 112, 122, 0.18);
+  color: #ff9ba3;
+}
+
+.app-toast.is-error .app-toast-copy strong {
+  color: #ffb1b7;
+}
+
+.app-toast.is-warning .app-toast-indicator {
+  background: rgba(255, 207, 139, 0.18);
+  color: #ffcf8b;
+}
+
+.app-toast.is-warning .app-toast-copy strong {
+  color: #ffcf8b;
+}
+
+.app-toast.is-light {
+  border-color: #d7cce3;
+  background: #fff;
+  color: #292722;
+}
+
+.app-toast.is-light .app-toast-copy p {
+  color: #4c4655;
+}
+
+.app-toast.is-light > button {
+  color: #40365a;
+}
+
+.app-toast.is-light > button:hover {
+  background: rgba(82, 65, 110, 0.1);
+}
+
+@keyframes app-toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 560px) {
+  .app-toast-stack {
+    top: 16px;
+    right: 16px;
+  }
+}

@@ -75,6 +75,42 @@ class NomineeSerializer(serializers.ModelSerializer):
                     'the contact; reassign any assets first.'
                 )
             })
+
+        request = self.context.get('request')
+        nominee_email = attrs.get(
+            'nominee_email',
+            instance.nominee_email if instance is not None else None,
+        )
+        if instance is None and request is not None and nominee_email:
+            duplicate_contact = Nominee.objects.filter(
+                user=request.user,
+                nominee_email__iexact=nominee_email,
+            ).exists()
+            if duplicate_contact:
+                raise serializers.ValidationError({
+                    'nominee_email': 'This email is already in your Trusted Circle. Edit the existing contact instead.'
+                })
+
+        if roles is not None:
+            roles_to_apply = set(roles)
+        elif instance is not None:
+            roles_to_apply = set(instance.roles.values_list('role', flat=True))
+        else:
+            roles_to_apply = set()
+        if 'beneficiary' in roles_to_apply and nominee_email:
+            login_user = User.objects.filter(email__iexact=nominee_email).first()
+            if login_user is not None:
+                linked_contacts = Nominee.objects.filter(login_account=login_user)
+                if instance is not None:
+                    linked_contacts = linked_contacts.exclude(pk=instance.pk)
+                if linked_contacts.exists():
+                    raise serializers.ValidationError({
+                        'nominee_email': (
+                            'This email is already linked to another beneficiary account. '
+                            'Use that existing contact instead.'
+                        )
+                    })
+
         if roles is None or instance is None:
             return attrs
 

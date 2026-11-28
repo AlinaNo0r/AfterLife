@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { setNomineePassword } from '../../services/authService.js'
+import { showAppToast } from '../../services/toastService.js'
 
 function SetNomineePasswordPage() {
   const { uid, token } = useParams()
@@ -23,6 +24,7 @@ function SetNomineePasswordPage() {
       })
       setComplete(true)
       setMessage(result.message)
+      showAppToast(result.message, 'success', 'Password saved')
       setPassword('')
       setConfirmPassword('')
     } catch (requestError) {

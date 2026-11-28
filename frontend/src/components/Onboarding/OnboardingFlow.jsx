@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { completeOnboarding, createNominee, createVaultItem } from '../../services/authService.js'
+import { showAppToast } from '../../services/toastService.js'
 import onboardingSteps from './onboardingSteps.js'
 import './Onboarding.css'
 
@@ -22,11 +23,15 @@ function OnboardingFlow() {
     const hasEmail = nomineeEmail.trim().length > 0
 
     if (setup && hasName !== hasEmail) {
-      setMessage('Enter both the nominee name and email, or leave both empty for now.')
+      const validationMessage = 'Enter both the nominee name and email, or leave both empty for now.'
+      setMessage(validationMessage)
+      showAppToast(validationMessage, 'error', 'Check the nominee details')
       return
     }
     if (setup && itemFile && (!hasName || !itemTitle.trim())) {
-      setMessage('To add a vault file, enter a nominee name and email, plus a title for the file.')
+      const validationMessage = 'To add a vault file, enter a nominee name and email, plus a title for the file.'
+      setMessage(validationMessage)
+      showAppToast(validationMessage, 'error', 'Check the vault file details')
       return
     }
 
@@ -62,6 +67,7 @@ function OnboardingFlow() {
         replace: true,
         state: { invitationSent },
       })
+      showAppToast('Your vault setup is complete.', 'success', 'Setup complete')
     } catch (error) {
       setMessage(error.message || 'Could not save onboarding. Please try again.')
     } finally {

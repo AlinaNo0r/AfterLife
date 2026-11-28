@@ -1,3 +1,5 @@
+import { showAppToast } from './toastService.js'
+
 async function sendApiRequest(endpoint, payload, { method = 'POST', authenticated = false, multipart = false } = {}) {
   const headers = {}
   const accessToken = localStorage.getItem('accessToken')
@@ -17,7 +19,9 @@ async function sendApiRequest(endpoint, payload, { method = 'POST', authenticate
       body: method === 'GET' ? undefined : multipart ? payload : JSON.stringify(payload),
     })
   } catch {
-    throw new Error("Can't reach the AfterLife server. Check that the Django backend is running, then try again.")
+    const message = "Can't reach the AfterLife server. Check that the Django backend is running, then try again."
+    showAppToast(message, 'error', 'Connection error')
+    throw new Error(message)
   }
 
   let data = {}
@@ -37,6 +41,7 @@ async function sendApiRequest(endpoint, payload, { method = 'POST', authenticate
           ? `The server couldn't complete this request (${response.status}). Please try again.`
           : `The request couldn't be completed (${response.status}). Please check your details and try again.`
     )
+    showAppToast(message, 'error', 'Request failed')
     throw new Error(message)
   }
 
@@ -130,6 +135,54 @@ export function assignLegacyAIAccess(nomineeId) {
 
 export function removeLegacyAIAccess(id) {
   return sendApiRequest(`/legacy-ai-access/${id}/`, undefined, { authenticated: true, method: 'DELETE' })
+}
+
+export function getLegacyAIPersona(nomineeId) {
+  return sendApiRequest(`/api/legacy-ai/owner/personas/${nomineeId}/`, undefined, { authenticated: true, method: 'GET' })
+}
+
+export function saveLegacyAIPersona(nomineeId, persona) {
+  return sendApiRequest(`/api/legacy-ai/owner/personas/${nomineeId}/`, persona, { authenticated: true, method: 'PATCH' })
+}
+
+export function previewLegacyAI(nomineeId, message, history) {
+  return sendApiRequest(
+    `/api/legacy-ai/owner/preview/${nomineeId}/`,
+    { message, history },
+    { authenticated: true },
+  )
+}
+
+export function getLegacyAIReadiness(nomineeId) {
+  return sendApiRequest(`/api/legacy-ai/owner/readiness/${nomineeId}/`, undefined, { authenticated: true, method: 'GET' })
+}
+
+export function getLegacyMemorySources(nomineeId) {
+  return sendApiRequest(`/api/legacy-ai/owner/sources/?nominee_id=${nomineeId}`, undefined, { authenticated: true, method: 'GET' })
+}
+
+export function uploadLegacyMemory(formData) {
+  return sendApiRequest('/api/legacy-ai/owner/sources/', formData, { authenticated: true, multipart: true })
+}
+
+export function deleteLegacyMemory(sourceId) {
+  return sendApiRequest('/api/legacy-ai/owner/sources/', { source_id: sourceId }, { authenticated: true, method: 'DELETE' })
+}
+
+export function getBeneficiaryLegacyAI() {
+  return sendApiRequest('/api/legacy-ai/beneficiary/', undefined, { authenticated: true, method: 'GET' })
+}
+
+export function saveBeneficiaryLegacyAIConsent(consent) {
+  return sendApiRequest('/api/legacy-ai/beneficiary/consent/', consent, { authenticated: true })
+}
+
+export function getBeneficiaryLegacyChat() {
+  return sendApiRequest('/api/legacy-ai/beneficiary/chat/', undefined, { authenticated: true, method: 'GET' })
+}
+
+export function sendBeneficiaryLegacyMessage(message) {
+  return sendApiRequest('/api/legacy-ai/beneficiary/chat/', { message }, { authenticated: true })
 }
 
 export function getTrustedCircleSettings() {

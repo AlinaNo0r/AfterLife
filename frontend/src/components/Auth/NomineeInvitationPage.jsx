@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getNomineeInvitation, respondToNomineeInvitation } from '../../services/authService.js'
+import { showAppToast } from '../../services/toastService.js'
 
 function NomineeInvitationPage() {
   const { token } = useParams()
@@ -32,6 +33,7 @@ function NomineeInvitationPage() {
       const result = await respondToNomineeInvitation(token, decision)
       setInvitation((current) => ({ ...current, consent_status: result.consent_status }))
       setMessage(result.message || 'Your response has been recorded.')
+      showAppToast(result.message || 'Your response has been recorded.', 'success', 'Invitation updated')
     } catch (error) {
       setMessage(error.message)
     } finally {

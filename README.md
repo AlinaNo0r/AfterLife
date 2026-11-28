@@ -24,7 +24,7 @@ records, and images).
 * **The AI Digital Twin Persona Chatbot:** Formulate a conversational text portal for verified beneficiaries that restricts all topic outputs to the exact text history provided by the creator.
 * **The Milestone Video Vault:** Construct a time-locked queue that calculates release dates using future system timestamps, securely holding data until the active calendar clock matches the release criteria.
 * **The Consensus Verification Ring:** Enforce a double-verification rule requiring confirmation from both independent contacts before changing account state flags.
-* **The Trusted Circle:** Invite contacts separately as beneficiaries, death witnesses, or both. Each role requires its own explicit acceptance. Assign credentials, memory capsules, and future Legacy AI access in their respective sections. Legacy AI training and chat are not connected in this build.
+* **The Trusted Circle:** Invite contacts separately as beneficiaries, death witnesses, or both. Each role requires its own explicit acceptance. Assign credentials, memory capsules, and Legacy AI access in their respective sections. The Legacy AI workspace supports beneficiary-specific memory uploads and context.
 * **Fail-Closed Witness Quorum:** Require at least two accepted witnesses to confirm death before inactivity-based release. Owners may increase the quorum; it is frozen when warning begins, and inactivity alone never releases assets.
 
 ### 🛠️ Technologies Used:
@@ -40,6 +40,7 @@ The React frontend and Django API run in separate terminals. Start PostgreSQL fi
 1. From the project root, start the Django API:
 
    ```powershell
+   .\.venv\Scripts\python.exe -m pip install -r .\FYP\requirements.txt -r .\FYP\requirements-legacy-ai.txt
    .\.venv\Scripts\python.exe .\FYP\manage.py migrate
    .\.venv\Scripts\python.exe .\FYP\manage.py runserver 127.0.0.1:8000
    ```
@@ -56,6 +57,22 @@ The React frontend and Django API run in separate terminals. Start PostgreSQL fi
 3. Open the frontend URL shown by Vite (usually `http://localhost:5173`). Its development proxy forwards API requests to Django on port 8000.
 
 Vault uploads are not served from a public media URL. Released capsules are downloaded through the authenticated beneficiary endpoint, which checks both the accepted beneficiary role and the capsule's release state.
+
+### Legacy AI (prototype)
+
+Legacy AI uses retrieval-augmented generation, not model fine-tuning. Owners can scope PDF, TXT, Markdown, or pasted memories to individual accepted beneficiaries, review a memory-coverage estimate, add relationship-specific context, and privately test a temporary preview before release. A local MiniLM embedding model indexes and searches memories; its model files are downloaded the first time the backend processes an upload.
+
+Response generation uses Ollama on the same computer that runs Django. Install [Ollama for Windows](https://ollama.com/download/windows), open Ollama, then run this in PowerShell once:
+
+```powershell
+ollama pull qwen2.5:3b
+```
+
+The default model is `qwen2.5:3b` (about 1.9 GB to download); it can be changed with `LEGACY_OLLAMA_MODEL` in `FYP/.env`. Ollama's local API defaults to `http://127.0.0.1:11434` and can be overridden with `LEGACY_OLLAMA_URL`. No hosted AI API key or per-request provider payment is needed. The first model download requires internet; later inference runs locally. Reply speed and quality depend on the laptop, and small local models may produce less capable responses. Check the model's license before use or redistribution.
+
+Selected memory excerpts, relationship/tone context, and messages—including owner preview questions—are processed by the local Ollama model after the owner enables processing; nominee chat additionally requires the beneficiary to accept the notice. Owner previews are temporary and are not saved to beneficiary chat history. Uploaded memory files/chunks and beneficiary chat transcripts are stored in the project's existing database/media storage and this feature does not encrypt them at rest; they are not exposed through a public media URL. The computer/server operator can access local files and database contents, so use only data that is appropriate for the demo and has the necessary consent. Withdrawing consent deletes the stored chat history in this application.
+
+The progress display is a heuristic about the volume, topic coverage, and variety of saved memories; it is not a percentage of model training, a guarantee of personality accuracy, or a mental-health assessment. Legacy AI is a memorial-support tool, not the deceased person, a therapist, or crisis care. Chat is gated on accepted beneficiary access and the existing confirmed release state.
 
 ###  ⚙  Development Baseline
 * **Processor Engine (CPU):** Minimum 2.0 GHz Quad-core processor (intel core i5, AMD ryzen 5)

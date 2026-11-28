@@ -31,6 +31,7 @@ CSRF_TRUSTED_ORIGINS = [
 INSTALLED_APPS = [
     'FYP_app',
     'killswitch',
+    'chatbot',
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt.token_blacklist',
@@ -93,6 +94,18 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 FIELD_ENCRYPTION_KEY = os.environ.get('FIELD_ENCRYPTION_KEY', '')
+LEGACY_OLLAMA_URL = os.environ.get(
+    'LEGACY_OLLAMA_URL',
+    'http://127.0.0.1:11434',
+)
+LEGACY_OLLAMA_MODEL = os.environ.get(
+    'LEGACY_OLLAMA_MODEL',
+    'qwen2.5:3b',
+)
+LEGACY_EMBEDDING_MODEL = os.environ.get(
+    'LEGACY_EMBEDDING_MODEL',
+    'sentence-transformers/all-MiniLM-L6-v2',
+)
 SITE_URL = 'http://localhost:8000'
 
 LANGUAGE_CODE = 'en-us'

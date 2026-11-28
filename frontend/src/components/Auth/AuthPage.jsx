@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import AuthTabs from './AuthTabs.jsx'
 import { loginUser, registerUser } from '../../services/authService.js'
+import { showAppToast } from '../../services/toastService.js'
 
 const EMPTY_FORM = {
   fullName: '',
@@ -88,14 +89,18 @@ function AuthPage() {
     setMessage('')
 
     if (mode === 'signup' && formData.password !== formData.confirmPassword) {
-      setMessage('Passwords do not match.')
+      const validationMessage = 'Passwords do not match.'
+      setMessage(validationMessage)
+      showAppToast(validationMessage, 'error', 'Check your details')
       return
     }
 
     if (mode === 'signup') {
       const password = formData.password
       if (password.length < 8 || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
-        setMessage('Password needs 8 characters, an uppercase letter, a number, and a special character.')
+        const validationMessage = 'Password needs 8 characters, an uppercase letter, a number, and a special character.'
+        setMessage(validationMessage)
+        showAppToast(validationMessage, 'error', 'Check your password')
         return
       }
 
@@ -109,7 +114,9 @@ function AuthPage() {
           : `+${phoneDigits.startsWith(dialDigits) ? phoneDigits : `${dialDigits}${phoneDigits.replace(/^0+/, '')}`}`
 
       if (cleanedPhone && !/^\+[1-9]\d{6,14}$/.test(internationalPhone)) {
-        setMessage('Enter a valid phone number with country code, for example +923001234567.')
+        const validationMessage = 'Enter a valid phone number with country code, for example +923001234567.'
+        setMessage(validationMessage)
+        showAppToast(validationMessage, 'error', 'Check your phone number')
         return
       }
     }
@@ -123,7 +130,9 @@ function AuthPage() {
         })
         localStorage.setItem('accessToken', data.access)
         localStorage.setItem('refreshToken', data.refresh)
-        navigate(data.onboarding_completed ? '/dashboard' : '/onboarding', { replace: true })
+        navigate(data.is_nominee_account
+          ? '/beneficiary/legacy-chat'
+          : data.onboarding_completed ? '/dashboard' : '/onboarding', { replace: true })
       } else {
         await registerUser({
           full_name: formData.fullName,
@@ -145,6 +154,7 @@ function AuthPage() {
       }
     } catch (error) {
       setMessage(error.message)
+      showAppToast(error.message, 'error', mode === 'login' ? 'Sign in failed' : 'Account creation failed')
     } finally {
       setIsSubmitting(false)
     }

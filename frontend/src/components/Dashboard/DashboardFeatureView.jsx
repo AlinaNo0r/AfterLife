@@ -6,11 +6,10 @@ import {
   FileText,
   KeyRound,
   MessageCircleHeart,
-  ShieldCheck,
   UsersRound,
 } from 'lucide-react';
 import { CredentialsManager, MemoryCapsuleManager } from './AssetManagers.jsx'
-import LegacyAIAccessManager from './LegacyAIAccessManager.jsx'
+import LegacyAIWorkspace from './LegacyAIWorkspace.jsx'
 import TrustedCircleManager from './TrustedCircleManager.jsx'
 
 const FEATURES = {
@@ -156,41 +155,14 @@ function MemoryCapsulesDetails({
 
 function LegacyAIDetails({ nominees, accesses, onAssign, onRemove, locked }) {
   return (
-    <>
-      <section className="feature-content-card legacy-ai-explainer">
-        <div className="feature-content-heading">
-          <div>
-            <p className="feature-eyebrow">THE IDEA</p>
-            <h2>A familiar voice, preserved with care</h2>
-          </div>
-          <MessageCircleHeart size={25} aria-hidden="true" />
-        </div>
-        <p>
-          Legacy AI is intended to reflect the owner’s personality and way of
-          speaking, using the memories they choose to preserve. Its purpose is
-          to let approved people in their Trusted Circle have a meaningful
-          conversation with that digital legacy.
-        </p>
-        <div className="legacy-ai-points">
-          <div>
-            <ShieldCheck size={19} aria-hidden="true" />
-            <span>Access is intended for the owner’s trusted circle.</span>
-          </div>
-          <div>
-            <FileText size={19} aria-hidden="true" />
-            <span>Preserved memories help shape the experience.</span>
-          </div>
-        </div>
-      </section>
-      <LegacyAIAccessManager
-        nominees={nominees}
-        accesses={accesses}
-        onAssign={onAssign}
-        onRemove={onRemove}
-        locked={locked}
-      />
-    </>
-  );
+    <LegacyAIWorkspace
+      nominees={nominees}
+      accesses={accesses}
+      onAssign={onAssign}
+      onRemove={onRemove}
+      locked={locked}
+    />
+  )
 }
 
 function ActivityMonitorDetails({ lastPulse, onStayAlive, isCheckingIn }) {

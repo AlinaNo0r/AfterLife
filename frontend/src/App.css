@@ -1,5 +1,6 @@
 @import "./styles/base.css";
 @import "./styles/auth.css";
+@import "./styles/app-toast.css";
 
 /* Preserve legacy styles before current dashboard overrides. */
 @import "./styles/dashboard-legacy.css";
@@ -17,6 +18,7 @@
 
 /* Feature workflows load after the shared dashboard styles. */
 @import "./styles/dashboard-features.css";
+@import "./styles/legacy-ai.css";
 @import "./styles/dashboard-assets.css";
 @import "./styles/dashboard-public-workflows.css";
 @import "./styles/dashboard-responsive.css";
